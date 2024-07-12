@@ -1,0 +1,1 @@
+https://github.com/ilopX/yii2-basic-htaccess

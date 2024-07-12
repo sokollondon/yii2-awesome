@@ -1,0 +1,49 @@
+Api, REST
+Чтобы от Yii1 обратиться к Yii2 и получить данные
+Есть на сайтах: http://plan2.local/
+
+УСТАНОВКА (Yii2):
+1) Controller
+    //Создавать отдельный controller REST имеет смысл только если много actions
+    public function behaviors()
+    {
+        return [
+            'authenticator' => [
+                'class' => yii\filters\auth\CompositeAuth::class,
+                'only' => ['api-get-list'],
+                'authMethods' => [
+                    yii\filters\auth\QueryParamAuth::class,
+                ],
+            ],
+            'access' => [
+                'class' => AccessControl::class,
+                'rules' => [
+                    [
+                        'allow' => true,
+                        'actions' => ['api-get-list'],
+                        'roles' => ['api'],
+                    ],
+                ],
+            ],
+        ];
+    }
+    
+    public function actionApiGetList($target_id)
+    {
+        Yii::$app->response->format = yii\web\Response::FORMAT_JSON;
+        return ['sokol'=>$target_id];
+    }
+
+
+УСТАНОВКА (Yii1):
+1) ApiPlan2 
+    public function subscribers_getList($target_id, $url='/admin/subscribe/api-get-list')
+    {
+        $res = $this->curl($url, [
+            'target_id'=>$target_id
+        ]);
+        return $res;
+    }
+
+2) Использование
+	$res = (new ApiPlan2())->subscribers_getList(2);

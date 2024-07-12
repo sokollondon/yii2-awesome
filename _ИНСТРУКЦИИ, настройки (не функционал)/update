@@ -1,0 +1,19 @@
+#!/bin/sh
+echo -e "1)\e[1;32m Load git repositories\e[0m"
+git pull origin master
+echo "2) Composer install"
+php composer.phar self-update
+php composer.phar install
+echo "3) Start migration"
+sudo -u apache php yii migrate --interactive=0
+echo "4) Delete files assets and cache"
+if [ -d "web/assets" ]; then
+    cd web/assets
+    sudo rm -rf *
+    cd ../../
+fi
+if [ -d "runtime/cache" ]; then
+    cd runtime/cache
+    sudo rm -rf *
+    cd ../../
+fi

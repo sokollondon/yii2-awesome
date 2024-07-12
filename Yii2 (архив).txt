@@ -1,0 +1,124 @@
+То, что очень редко используется или вообще не исп.
+
+
+
+
+/****************************************************************************
+* View
+*/        
+DynaGrid. Как установить
+	Есть на сайтах: plan2.local, lk.genesis-law.ru
+
+	ИНСТРУКЦИЯ ПО УСТАНОВКЕ: (попрвить, см. plan2.local)
+	1) composer.json
+		"kartik-v/yii2-dynagrid": "*",
+	2) backend/config/web.php
+		'modules' => [
+	        'dynagrid'=>[
+	            'class'=>'\kartik\dynagrid\Module',
+	            'dbSettings' => [
+	                'tableName' => 'dynagrid',
+	            ],
+	            'dbSettingsDtl' => [
+	                'tableName' => 'dynagrid_dtl',
+	            ],
+	        ],
+	        'gridview'=>[
+	            'class'=>'\kartik\grid\Module',
+	        ],
+	    ],
+	3) console/config/console.php
+	    'controllerMap' => [
+	        'migrate' => [
+	            'class' => yii\console\controllers\MigrateController::class,
+	            'migrationNamespaces' => [
+	                'kartik\dynagrid\migrations',
+	            ],
+	        ],
+	    ],
+	    'modules' => [
+	        'dynagrid'=>[
+	            'class'=>'\kartik\dynagrid\Module',
+	        ],
+	    ],
+	4) VIEW. index.php
+		Переносится dataProvider и т.д. в gridOptions
+	    <?= DynaGrid::widget([
+	        'options'=>['id'=>'post'],//todo-s
+	        'gridOptions'=>[
+	            'dataProvider' => $model->search(),
+	            'filterModel' => $model,
+	            'toolbar' =>  [
+	                '{export}',
+	                ['content'=>'{dynagridFilter}{dynagridSort}{dynagrid}'],
+	                '{toggleData}',
+	            ],
+	        ],
+	        'theme' => 'panel-default',
+	        'showPersonalize'=>true,
+	        'storage'=>DynaGrid::TYPE_DB,
+	        'columns' => [...]
+
+
+
+DatePicker                             
+	echo kartik\date\DatePicker::widget([//лучше использовать не kartik, а trntv (там удобнее DateTime)
+	    'model' => $model,
+	    'attribute' => 'create_date',
+	    'removeButton'=>false,
+	    'pluginOptions' => [
+	        'todayHighlight' => true
+	    ]
+	]);
+
+
+
+Текстовое поле с автозавершением (как AutoComplete)
+	(!!!) Исп. чистый typeahead.js  (см. yii2.txt) т.к. kartik-v/yii2-widget-typeahead не поддерживает DynamicFormWidget
+    $list = ['Вариант 1','Вариант 2',];
+    $list = $list ?: [''];
+    echo $form->field($model, 'whom_hand')->widget(\kartik\typeahead\Typeahead::class, [
+        'options' => ['placeholder' => '', 'autocomplete'=>'off'], 'pluginOptions' => ['highlight'=>true],
+        'dataset' => [['local' => $list,'limit' => 10]], 'defaultSuggestions' => $list,
+    ]);
+
+    Подгружаемый по ajax
+        echo $form->field($model, 'tz')->widget(Typeahead::class, [
+            'options' => ['placeholder' => '', 'autocomplete'=>'off'], 'pluginOptions' => ['highlight'=>true, 'minLength'=>2],
+            'dataset' => [[
+                'display' => 'text',
+                'remote' => ['url' => \app\components\Url::to(['/planning/equipment/ajax-find-tz']) . '?q=%QUERY', 'wildcard' => '%QUERY'],
+            ]],
+        ]);
+        //Доп.
+            'pluginEvents'=> ["typeahead:select" => "function(e, d) {console.info(d); }",],
+            'dataset' => [[
+                'templates' => ['suggestion' => new \yii\web\JsExpression("Handlebars.compile('<p>{{text}} - {{customer}}</p>')")],
+            ]],
+
+
+/****************************************************************************
+* Controller
+*/        
+Изменение ReturnUrl если перешли на страницу от Plan1 
+	Функционал удалил, т.к. обошлись без него и перестало работать в chrome (терялся весь адрес кроме домена), в ff работает.
+
+	if($this->modifyReturnUrlIfPlan1(['flashJourneySaved'=>true, 'tab'=>'pnr'])){
+        return $this->goBack();
+    }
+
+	components/Controller.php
+	    public function modifyReturnUrlIfPlan1($paramsAdd)
+	    {
+	        $returnUrl = Yii::$app->user->getReturnUrl();
+	        $isPlan1 = strpos($returnUrl, Yii::$app->params['plan1_url']);
+	        if($isPlan1 !==false){//Если referer plan1, добавляем параметр
+	            $url = explode('?', $returnUrl, 2)[0];
+	            parse_str(parse_url($returnUrl, PHP_URL_QUERY), $params);
+	            $url .= "?".http_build_query(array_merge($params, $paramsAdd));
+	            Yii::$app->user->setReturnUrl($url);
+	            return true;
+	        }
+	        return false;
+	    }
+

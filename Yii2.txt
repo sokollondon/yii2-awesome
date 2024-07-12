@@ -1,0 +1,1298 @@
+ПЕРЕМЕННЫЕ
+	Yii::$app->params['is_beta']
+    Yii::$app->controller->module->id; //имя текущего модуля
+    Yii::$app->getModule('api_sup'); //экземпляр класса модуля
+    Yii::$app->request->hostInfo //домен http://plan2.local
+
+Структура папок, названия
+    views/my-model/
+        _div/   (части формы)
+            _esd.php
+        report/
+            pdf-kp.php  (включает форму и отчёт)
+        modal/
+            form_multiple.php
+        index.php
+        form.php
+Имена методов и переменных
+    gridFormatAsInteger()
+
+Change Log
+    https://github.com/yiisoft/yii2/blob/master/framework/CHANGELOG.md
+    Нужно обновляться? См. полезные функции
+
+Работа с БД
+	/****************************
+	* AR
+	*/
+	    /** @var Post[] $items */
+	    $items = Post::find()
+	    	->where(['status_id' => 1])
+	    	->joinWith(['user u'])
+	    	->orderBy('name, u.name, post.id')
+	    	->all();
+
+            Доп:
+            //->andWhere(['NOT IN', 'status_id', [1,2]])//(!) status_id=null тоже исключится
+            //->andWhere(['!=','status_id', 2])
+            //->andWhere(['IS NOT','date', null])
+            //->andWhere([
+            //    'OR',
+            //    ['>', 'date', '2017-03-23'],
+            //    ['status_id'=>1],
+            //])
+            //->with(['user'])
+            //->joinWith(['user u'],true,'RIGHT JOIN')
+            //->innerJoinWith(['tags'], false)//eagerLoading false убираем жадную загрузку если не требуется выводить
+            //->orderBy(new Expression("id=".implode(' DESC, id=', [2,3])." DESC")),
+            //->orderBy(new Expression("id IN (9) ASC")),
+
+		$items = Post::findAll([1,2,3]);
+		$items = Post::findOne(['id'=> 1]);
+
+
+		AsArray
+			$items = Post::find()
+	            ->select(['id','name'])
+	            ->orderBy('name')
+	            ->asArray()->all();
+            //->scalar();
+            //->count();
+            //->select('id')->column();
+
+	/****************************
+	* PDO
+	*/
+		Не исп. т.к. есть ->asArray()->all() у AR
+
+
+	/**
+	* Работа с несколькими (insert, update, delete)
+	*/
+	    Добавление
+    		$items4add = [
+                ['Tom', 30],
+                ['Jane', 20],
+                ['Linda', 25],
+            ];
+            Yii::$app->db->createCommand()->batchInsert(User::tableName(), 
+                ['name', 'age'], $items4add)->execute();
+
+        Обновление
+            Post::updateAll(['user_id'=>1],
+                ['status_id'=>2]);
+            //Для проверки простых запросов Post::findAll([]);
+
+            Post::updateAll(['user_id'=>1], [
+                'AND',
+                ['group_id'=>1],
+                ['NOT IN', 'status_id', [3]]
+            ]);
+
+        Удаление
+        	Post::deleteAll("user_id=:user_id AND is_active = true",[
+	            ':user_id'=>$this->id
+	        ]);
+
+    Влияет ли кол-во колонок БД на ПРОИЗВОДИТЕЛЬНОСТЬ?
+        PDO (->asArray()) совсем не влияет.
+        AR особо не влияет. 
+            Пример, насколько увеличивается время открытия страницы при добавлении каждых 10 колонок:
+                При получении 100 строк    +5ms
+                При получении 1000 строк   +50ms (для большого кол-ва строк AR обычно не исп.)
+                При получении 10000 строк  +500ms
+
+РАЗНОЕ
+	Yii::$app->user->can('changeUser') 	//RBAC
+    Yii::$app->user->identity //User
+	Yii::$app->security->generateRandomString(8) //генератор случайной строки
+
+	Получение $_GET, $_POST
+		$val = Yii::$app->request->get('val');
+		$val = Yii::$app->request->post('val');
+
+	asDate("2016-07-10")  //Вернет "10.07.2016"
+        deprecated из-за скорости: Yii::$app->formatter->asDate("")
+	Yii::$app->formatter->asInteger(12345) //12 345
+    number_format(1000.12,0,',',' ') //без &nbsp;
+        (!) исп. в select2
+    Yii::$app->formatter->asDecimal(12345.67) //12 345.67
+    Yii::$app->formatter->asCurrency(12345.67, 'RUR'); //12 345.67 р.
+        [\NumberFormatter::MAX_SIGNIFICANT_DIGITS  => 100] //скрывать копейки если .00
+
+	Вывод сообщения
+		Yii::$app->session->addFlash('success', "Объект #$model->id успешно изменён");
+			//info, warning, danger
+
+	Cookie
+		Yii::$app->response->cookies->add(new yii\web\Cookie([
+            'name' => 'sokol', 'value' => $val,
+            'expire' => time()+60*60*24*7,
+        ]));
+        	//Кука не установится, если в action контроллера есть echo
+		Yii::$app->request->cookies->getValue('sokol');
+		Yii::$app->response->cookies->remove('sokol');
+
+	Session
+		Yii::$app->session->set('test',111);
+        Yii::$app->session->get('test');
+        Yii::$app->session->remove('test');
+	
+
+	Исключения
+        throw new \app\components\ForbiddenHttpException();
+        throw new yii\web\NotFoundHttpException('Страница не найдена');
+        throw new yii\web\BadRequestHttpException();
+        throw new yii\web\ServerErrorHttpException('');
+        throw new yii\web\HttpException(403, 'Своя_ошибка');
+
+	Получение url и путей
+		Url::to(['index'])
+        Url::to(['index'],true) //с доменом
+        Url::base(true) //домен
+        Url::current(['Equipment' => ['f_month'=>3]]) //Добавляет к текущему адресу
+		Yii::$app->urlManager->createUrl('site/test')
+        
+        Yii::getAlias('@app/assets/css/pdf.css') //ещё @webroot
+        Как сделать не стандартный namespace
+            В config/web.php
+                'aliases' => [
+                    '@listField' => '@app/components/yii2-list-field/src',
+                ],
+            Использовать
+                namespace listField\controllers;
+
+	Cache
+		$cache_id = "menu_top_".Yii::$app->user->id;
+		$menu = Yii::$app->cache->get($cache_id);
+		if(!$menu){
+		    $menu = "new_val";
+		    Yii::$app->cache->set($cache_id, $menu, 60*60*24*30);
+		}
+		echo $menu;
+			//Yii::$app->cache->delete($cache_id);
+			//Yii::$app->cache->flush();  //очищает все кэши
+
+    Вставка CSS
+        $this->registerCss($style);
+
+	//Склонение числительных
+        plural($item, ['день', 'дня', 'дней']);
+		
+        Вариант от Yii, но нужен модуль php_intl и на некоторых версиях глючит
+        Yii::t('app','{n, plural, one{# день} many{# дней} other{# дня}}', ['n' => 2])
+			https://github.com/yiisoft/yii2/blob/master/docs/guide-ru/tutorial-i18n.md#Множественное-число
+        Да прибудет с нами русский =)
+
+	//Чтобы файл скачался вместо открытия
+		return Yii::$app->response->sendFile(Yii::getAlias('@webroot/uploads/file.jpg'));
+
+
+
+
+
+
+
+
+
+/****************************************************************************
+* Yii2-starter-kit
+*/
+DbText
+	echo \common\widgets\DbText::widget([
+	    'key' => 'ads-example'
+	])
+
+Yii::$app->keyStorage->get('is_reminder')
+	Настройки сайта добавлять тут backend/controllers/SiteController::actionSettings()
+    Производительность: высокая, т.к. кэшируется на prod
+
+
+
+
+/****************************************************************************
+* Model
+*/
+Примеры валидации rules() 
+	http://www.webapplex.ru/pravila-validaczii-form-v-yii-2.x
+	https://www.yiiframework.com/doc/guide/2.0/ru/input-validation
+
+Сортировка, фильтр, DataProvider
+	https://phpstack.ru/php/yii2-activerecord-shpargalka-po-sostavleniyu-zaprosov.html
+
+public function search()
+{ //Для DynaGrid нужно, чтобы в модели был метод search() и без доп. параметров
+    $params = Yii::$app->request->queryParams;
+    $with =[
+        'reason',
+    ];
+    $dgHelper = new DynaGridHelper();
+    $dgHelper->mergeIfColVisible('customer_id',true,$with,['customer']);
+    $query = self::find()->with($with)->alias('t');
+    //Сортировка связанных данных
+    //$query = self::find()->with([
+    //    'tags' => function (yii\db\ActiveQuery $query) {
+    //        $query->orderBy('id');
+    //    },
+    //]);
+
+    $dataProvider = new ActiveDataProvider([
+        'query' => $query,
+        'pagination' => [
+            'pageSize' => 20
+        ],
+        //'pagination' => false,
+        'sort' => [
+            'defaultOrder' => [
+                //'category' => SORT_ASC,
+                'id' => SORT_DESC,
+            ],
+        ],
+    ]);
+    if($dataProvider->sort->getAttributeOrder('id')){//иначе не работают одновременно несколько сортировок с Expression. См. Contracts::search()
+    	...
+    }
+    //сорт. по дате
+    $dataProvider->sort->attributes['date']['desc'] = [new yii\db\Expression('t.date DESC NULLS LAST')];
+    $dataProvider->sort->attributes['date']['default'] = SORT_DESC;
+
+    //Сортировка по связанным данным
+    //$query->joinWith(['category category']);
+    //$dataProvider->sort->attributes['category'] = [
+    //    'asc' => ['category.name' => SORT_ASC],
+    //    'desc' => ['category.name' => SORT_DESC],
+    //];
+
+    if (!$this->load($params)) {
+        return $dataProvider;
+    }
+
+    $query->andFilterWhere([
+        'id' => $this->id,
+        'date' => $this->date,
+    ]);
+    $query->andFilterWhere(['ILIKE', 'name', $this->name]);
+    //$query->andFilterWhere(['ILIKE', 'name', '%'.$this->name, false]);
+    $query->andFilterWhere(['IN', 'status_id', [1, 2]]);
+    $query->andFilterCompare('price', changeCommaToDot($this->price));//>100, <100
+    $query->andFilterWhere(['between', 'date', $this->date, $this->f_date_to]);//включая границы диапозона
+    if($this->tz != ''){//числовые поля
+        $query->andWhere("tz::text ILIKE :tz", [':tz'=>"%$this->tz"]);
+        //Вариант 2
+        //$this->tz = (int)$this->tz;
+        //$query->andFilterWhere(['tz' => $this->tz]);
+    }
+    if($this->is_default){
+        $query->andWhere(['is_default'=>($this->is_default=='yes' ? true : false)]);
+        //Вариант №2 int $query->andWhere(['IS'.($this->esd_id=='yes' ? ' NOT' : ''), 'esd_id', null]);
+    }//Вариант №3 $this->is_active=='0'
+
+    //Фильтр: есть/нету связанных данных hasMany
+    if($this->f_hasTags == 'yes'){
+        $query->innerJoinWith(['tags']);
+        $query->groupBy('t.id');//без этого пагинация будет глючить и кол-во
+    }elseif($this->f_hasTags == 'no'){
+        $query->joinWith(['tags tags']);
+        $query->andWhere(['IS', 'tags.id', null]);
+    }
+
+
+    $query->joinWith(['people.user u']);
+    $query->andFilterWhere(['ILIKE', 'u.name', $this->f_user_name]);
+    //if($this->customer_f){
+    //    $query->joinWith(['movements.customer c']);
+    //    $query->joinWith(['movements.customer.otherNames on']);
+    //    $query->andWhere('(c.company_name ILIKE :customer_f) OR ("on".name ILIKE :customer_f)', [':customer_f'=>"%$this->customer_f%"]);
+    //}
+    //Фильтр по связанным из др. БД не получится одним $query, нужен доп. запрос
+    if($this->code){
+        $res = ProjectSup::find()->select('Id')->where(['ILIKE', 'Cipher', $this->code])->column();
+        $query->andWhere(['IN', 'project_sup_id', $res]);
+    }
+
+    return $dataProvider;
+}
+
+
+
+
+
+
+
+
+
+/***************************************************************************************************
+* View
+*/                                                    
+8b           d8  88                                  
+`8b         d8'  ""                                  
+ `8b       d8'                                       
+  `8b     d8'    88   ,adPPYba,  8b      db      d8  
+   `8b   d8'     88  a8P_____88  `8b    d88b    d8'  
+    `8b d8'      88  8PP"""""""   `8b  d8'`8b  d8'   
+     `888'       88  "8b,   ,aa    `8bd8'  `8bd8'    
+      `8'        88   `"Ybbd8"'      YP      YP      
+
+.form-group-m0
+    Чтобы у input указать внизу примечание (вместо hint), добавить этот класс родителю
+
+<span rel="tooltip" title="Короткая" class="right opacity"><i class="glyphicon glyphicon-question-sign"></i></span>
+
+<span rel="popover" data-content="Длинная<br>вторая_строка" class="right"><i class="glyphicon glyphicon-info-sign"></i></span>
+    //data-placement="right"
+    //rel="popover-click"
+    //.opacity1
+
+Html::a('<i class="glyphicon glyphicon-print"></i> Печать', ['print'], ['class' => 'btn btn-default']);
+    'data-confirm' => 'Удалить?' //красивые modal см https://demos.krajee.com/dialog#demos Но если ссылка внутри form, то отправится форма.
+
+Helper::aExitArrow(['/planning/pef-element/index']) //стрелка назад, выход
+
+\yii\helpers\StringHelper::truncate($model->text, 150, '...', null, true); //Обрезать текст вконце
+
+->label('&nbsp;')
+
+DropDownList с NULL+false
+    echo Html::activeLabel($model, 'is_ok');
+    echo Html::dropDownList('Post[is_ok]', ($model->is_ok===false ? '0' : $model->is_ok), [
+        null=>'',
+        true=>'Да',
+        false=>'Нет',
+    ], ['class'=>'form-control']);
+    ПР: Служебки - Гарантийная?
+
+
+
+/************************************************************************************************/
+
+//Документация http://demos.krajee.com/grid-demo 
+    https://nix-tips.ru/yii2-razbiraemsya-s-gridview.html
+echo GridView::widget([
+	'id' => 'i_am_super',
+    'dataProvider' => $model->search(),
+    'filterModel' => $model,
+    //'rowOptions' =>function (MMMMMM $model){
+    //    $res=[]; if(!$model->is_active) $res = ['class' => 'text-muted2'];
+    //    return $res;
+    //},
+    //'layout'=>"{export}{dynagrid}{items}",
+    //'tableOptions' => ['class' => 'table-hover2'],
+    //'hover'=>true,
+    //'striped'=>false,
+    'columns' => [
+    	['class' => 'kartik\grid\SerialColumn'],//нумерация
+        'id',
+        'name',
+        'date:date',
+        'is_active:boolean',
+        'name:raw:Заголовок',
+        'user.name', //relation, без фильтра
+        [
+            'attribute'=>'name',
+            'content'=>function(MMMMMM $model){
+                return $model->name;
+            },
+        ],
+        [
+            'attribute'=>'is_default',
+            'content'=>function(MMMMMM $model){
+                return $model->is_default ? Helper::icon('ok','Да') : '';
+            },
+            'filter' =>['yes'=>'Да', 'no'=>'Нет'],
+            //'format'=>'boolean',//вариант 2 (авт. заполнит content, filter...)
+        ],
+        [
+            'attribute'=>'user_id',
+            //'attribute'=>'user.name',//todo проверить для DynaGrid
+            'label'=>'Дата <br>отгрузки', 'encodeLabel'=>false, 'headerOptions' => ['class'=> 'header-sm'],
+            //'label'=>Helper::gridLabel('₽','Валюта'), 'encodeLabel'=>false,
+            ////'header'=>'Пользователь2',//без сортировки
+            'content'=>function(MMMMMM $model){
+                return $model->user->name;
+            },
+            //'value' => 'user.name' //(!)при рефакторинге поле не найдёт
+            'filter'=>Post::getList(),
+            'filterType' => GridView::FILTER_SELECT2,
+            //'filterWidgetOptions' => [
+            //    'options' => ['multiple' => true],//доп: #contracts-status_id+.select2 .select2-selection{max-width:60px;}
+            //    'pluginOptions' => ['dropdownParent' => new \yii\web\JsExpression('$(".modal")')],
+            //],
+            //'filter'=>Html::activeTextInput($model, 'reason_str', ['class'=>'form-control']),
+            //'contentOptions' => ['class' => 'sss'],
+            //'filterOptions' => ['class'=>'datepicker'],
+            //'format'=> 'raw',
+            //'visible'=>false,
+
+            //'pageSummary' => true,//111. Ещё в config 'showPageSummary' => true,
+            //'pageSummary'=> function($sum) { return Yii::$app->formatter->asCurrency($sum, 'RUR'); },
+            'pageSummary'=> function() use ($dataProvider) {//если не хватает функционала https://demos.krajee.com/grid
+                $sum = 0;
+                foreach ($dataProvider->models as $model) {/** @var $model MMMM */
+                }
+                return Helper::gridFormatAsInteger($sum);
+            },
+            'pageSummaryOptions'=>['title'=>'t'],
+        ],
+        [
+            'attribute'=>'price',
+            'content'=>function(MMMMMM $model){
+                return Helper::gridFormatAsInteger($model->price);
+            },
+            'hAlign' => 'right',
+            'filterOptions' => ['title'=>"< 500 000 \n>= 2 000 000"],
+            'filter' => Html::activeTextInput($model,'price',['class'=>'form-control js-only-float_f']),
+        ],
+        [
+            'attribute'=>'qty',
+            'filter' => Html::activeTextInput($model,'qty',['class'=>'form-control js-only-number_f']),
+        ],
+        [
+        	//Дата. Показать фильтр
+            'attribute'=>'date',
+            'format'=>'date',
+            'width'=>'90px',
+            'filter'=> Helper::gridFilterDate($model,'date','f_date_to'),
+        ],
+
+        [
+            'class' => 'app\components\grid\ActionColumn',
+            'template' => '{change}',
+            //'width'=>'90px',
+            'buttons' => [
+                'change' => function ($url) {
+                    return Html::a('<i class="glyphicon glyphicon-refresh"></i>',$url);
+                },
+                'delete' => function (/** @noinspection PhpUnusedParameterInspection */$url, $model, $key) {
+                    return Html::a('<i class="glyphicon glyphicon-trash"></i>', ['contract-payment/delete', 'id'=>$key],[
+                        'class'=>'sendAjax', 'title'=>'Удалить', 'data-confirm' => 1, 'data-updateOk' => '.payment_wrap',
+                    ]);
+                },
+            ],
+            //'deleteOptions' => ['data-confirm' => 'Свой текст. Удалить?']
+        ],
+    ],
+]);
+
+ДОПОЛНИТЕЛЬНО
+pjax
+    'pjax' => true,
+    'pjaxSettings' => ['options'=>['enablePushState'=>false]],//отключает изменение URL
+
+Разное
+    echo GridView::widget([
+        'columns' => [
+            //Выделение строк Checkbox
+            [
+                'class' => 'kartik\grid\CheckboxColumn',
+                'checkboxOptions' => ['label'=>'', 'labelOptions'=>['style'=>'padding: 8px;margin:0;']],
+                'contentOptions' => ['style' => 'padding: 0;'],
+                //js: $("#grid_id").yiiGridView("getSelectedRows")
+            ],
+        ],
+    ]);
+    
+Настройки для экспорта
+    'hiddenFromExport'=>true,
+    "<span class='skip-export'>Данные</span> <span class='show-export' style='display: none;'>Данные для экспорта</span>"
+    Для текстового поля многострочного с оформлением (из визуального редактора)
+        strip_tags(str_replace(['<li>','</li>','</p>'], ['<li> &#10004;&nbsp;','<br></li>','</p><br>'], $res),'<strong><br>')
+
+Группировка, объединение ячеек
+    [
+        'attribute'=>'customer_id',
+        'content'=>function(MMMMMM $model){
+            return $model->name .hiddenSpan();//иначе пустая ячейка даст глючный сдвиг если нет name
+        },
+        'group' => true,
+    ],
+    'tableOptions' => ['class' => 'table-group'],
+
+    Для группировки по горизонтали добавить
+        'groupedRow' => true,
+        'groupOddCssClass' => 'kv-grouped-row bg-success',
+        'groupEvenCssClass' => 'kv-grouped-row bg-success',
+        'order'=>DynaGrid::ORDER_FIX_LEFT,
+
+        <style> не нужен
+
+DynaGrid. Как установить
+    См. Yii2 (архив).txt
+
+//БЕЗ KRAJEE
+echo GridView::widget([
+    'columns' => [
+        [
+            'attribute'=>'price',
+            'contentOptions' => ['style' => 'text-align:right;'],
+        ],
+        [
+            'filter' => Select2::widget([//с krajee и pjax такой вариант не обновляется сам
+                'model' => $model,
+                'attribute' => 'user_id',
+                'data' => $model::getList(),
+                'options' => ['placeholder' => ''], 'pluginOptions' => ['allowClear' => true],
+            ]),
+        ],
+    ],
+]);
+
+Шпаргалка ActiveForm
+    http://yiico.ru/blog/499-shpargalka-po-formam-activeform-dlya-yii2
+    <?php 
+    $form = ActiveForm::begin([
+        'options'=> ['autoComplete'=>'off'],
+    ]);?>
+    <?php ActiveForm::end(); ?>
+
+Выбор даты календарем
+    $form->field($model, 'date')->dateInput() //datepicker
+
+    Вариант2 вручную
+    if(!$model->hasErrors('date')) $model->date = asDate($model->date);
+    echo $form->field($model, 'date')->textInput(['class'=>'form-control datepicker']);
+
+	Вариант3
+        echo $form->field($model, 'date')->widget(DatePicker::class, [
+            'removeButton' => false,
+            'pluginOptions' => [
+                'autoclose'=>true,
+                'format' => 'yyyy-mm-dd'
+            ]
+        ]);
+
+    Дата от и до
+    	echo DatePicker::widget([
+            'model' => $model,
+            'type' => DatePicker::TYPE_RANGE,
+            'attribute' => 'date',
+            'attribute2' => 'f_date_to',
+            'separator'=>'-',
+            'pluginOptions' => [
+                'autoclose'=>true,
+            ],
+        ])
+
+    Дата и время
+        .dateTimePicker
+
+Выпадающий список
+	//Документация  http://demos.krajee.com/widget-details/select2
+    echo $form->field($model, 'user_id')->widget(Select2::class, [
+        'data' => User::getList(),
+        'options' => ['placeholder' => ''],
+        'pluginOptions' => ['allowClear' => true],
+    ]);
+    	//Дополнительно js
+    		//Очистить выбранное значение
+    		$('#id').find('.select2-selection__clear').mousedown();
+    		//Изменить выбранное значение
+    		$('select').val("1").trigger("change");
+    		//Если выводим в модальном окне, добавить в pluginOptions
+    			'dropdownParent' => new \yii\web\JsExpression('$("#modal_default")'),
+        Доп. css
+            .s2vertical  вертикально отображать выбранные пункты
+        Доп. Сохранение последовательности выбора
+            https://qna.habr.com/answer?answer_id=1866701
+        См. Select2::widget()
+	Подгружаемый по ajax
+		<?= $form->field($model, 'customer_id')->widget(Select2::class, [
+            'initValueText'=> $model->customer->company_name,
+            'options' => ['placeholder' => ''],
+            'pluginOptions' => [
+                'allowClear' => true,
+                'minimumInputLength' => 2,
+                'ajax' => [
+                    'url' => \app\components\Url::to(['/planning/customers/ajax-find']), 'dataType' => 'json',
+                    'data' => new \yii\web\JsExpression('function(params) { return {q:params.term}; }')
+                ],
+            ],
+        ])?>
+        //Данные: См. Select2AjaxFind() 
+            //multiple
+                'value' => ArrayHelper::map($model->linkedEquipments, 'id','id'),
+                'data' => Equipment::getList($model->linkedEquipments),
+                'options' => ['placeholder' => '','multiple' => true],
+        	//Изменить значение
+			$('customer_id').html('<option value="11">Значение</option>').change();
+            //Доп.
+                'pluginEvents' => [
+                    "select2:selecting" => "function(e) { console.info(e.params.args.data); }",
+                ],
+                'pluginOptions' => [
+                    'escapeMarkup' => new JsExpression('function (markup) { return markup; }'),
+                    'templateResult' => new JsExpression('function(item) { return item.text; }'),
+                    'templateSelection' => new JsExpression('function (item) { return item.text; }'),
+                ],
+
+Текстовое поле с автозавершением (как AutoComplete)
+    https://github.com/corejavascript/typeahead.js/blob/master/doc/jquery_typeahead.md
+        Док2: https://typeahead.js.org/examples/
+        Css: https://github.com/bassjobsen/typeahead.js-bootstrap-css
+    \app\assets\TypeaheadAsset::register($this);
+    <?=$form->field($model, 'tz')->textInput(['autocomplete'=>'off'])?>
+    <script>
+        $(function () {
+            $('#post-tz').typeahead({
+                hint: false,
+                autoselect: true,
+                highlight: true,
+                minLength: 2
+            },{
+                name: 'typeAhead1',
+                limit: 30,
+                source: new Bloodhound({datumTokenizer: Bloodhound.tokenizers.whitespace, queryTokenizer: Bloodhound.tokenizers.whitespace,
+                    remote: {
+                        url: '<?=\app\components\Url::to(['/planning/equipment/ajax-find-tz']) . '?q=%QUERY'?>',
+                        wildcard: '%QUERY'
+                    }
+                }),
+                display: "text",
+            }).on('typeahead:asyncrequest', function(e) {
+                $(e.target).addClass('sLoading');
+            }).on('typeahead:asynccancel typeahead:asyncreceive', function(e) {
+                $(e.target).removeClass('sLoading');
+            });
+        });
+    </script>
+        Данные: См. Select2AjaxFind() с правкой для typeahead
+        Events
+            .on('typeahead:select', function(e, d) {
+                console.info(d);// todo-s
+            })
+        Локальные данные без фильтрации
+            source: function(q, cb){cb(['11','22'])}
+            //['11','22']  --  <?=json_encode(array_values(Post::getList()))?>
+        Локальные данные с фильтрацией
+            source: new Bloodhound({..., ...,
+                local: ['11','22']
+            })
+        Динамический параметр
+            remote: {
+                url: ...,
+                replace: function(url, q) {
+                    url = url.replace("%QUERY", q);
+                    let val = $('#post_id').val();
+                    if(val) url += '&post_id=' + encodeURIComponent(val);
+                    return url;
+                },
+            },
+        Шаблон
+            source: ...,
+            templates:{"suggestion": function (d) { return '<p>' + d.text + ' - ' + d.customer + '</p>'; }},
+
+
+
+Модальное окно
+    <a href="<?= Url::to(['/admin/change-user'])?>" class="btn openModal">Открыть м. окно</a>
+	<?php //Modal::begin(['id' => "modal_default"]);Modal::end(); ?>  
+		//Для ajax валидации опробовать http://sauron.org.ua/post/1116 
+		//Размеры:  data-target="#modal_default_lg" #modal_default_sm, #modal_default
+
+    CRUD в модальном окне (см. txt)
+    Modal. Уведомление (см. txt)
+
+Своё js событие после валидации yiiActiveForm
+	$('#id_form').on('beforeSubmit', function() {
+        console.info('отправляем_форму');
+        return false;
+    });
+
+Телефон ввод по маске
+    echo $form->field($model, 'phone')
+        ->widget(\yii\widgets\MaskedInput::class, ['mask' => '+7 (999) 999 99 99'])
+        ->textInput(['maxlength' => 255]);
+
+Цена ввод по маске
+    <?= $form->field($model,'price')->price()?>
+        В rules()
+            [['price'], 'number', 'enableClientValidation' => false],
+        beforeValidate()
+        	$this->price = changeCommaToDot($this->price);
+        Доп.
+            ['clientOptions' => ['max' => '100']] //для %
+            ['options'=>['class'=>'ss']]
+    Вариант 2
+        <?=$form->field($model, 'price')->widget(\yii\widgets\MaskedInput::class, ['clientOptions' => [
+            'alias' => 'decimal', 'groupSeparator' => ' ', 'autoGroup' => true, 'radixPoint' => ',', 'digits' => 2,
+        ]])?>
+
+NumberField
+    $form->field($model, 'qty')->textInput(['type'=>'number', 'min'=>0]);
+        'step'=>'any', //для дробных чисел
+
+TinyMCE
+    <?php
+    echo $form->field($model, 'note')->textarea();
+    \app\assets\TinymceAsset::register($this);
+    ?>
+    <script>
+        tinymce.init({
+            language: 'ru',
+            selector:'textarea#pefelement-note',
+            menubar: false,
+            toolbar: 'bold removeformat'
+        });
+    </script>
+    Док: https://www.tiny.cloud/docs/advanced/editor-control-identifiers/#toolbarcontrols
+        plugins: 'lists',
+        toolbar: 'numlist'
+textarea
+    <?=$form->field($model, 'note')->textarea(['style'=>'height: 76px'])?>
+    //['rows' => 3] лучше не делать, т.к. в firefox будет другая высота
+
+Pjax
+    Исп. если нужно обновить только 1 блок. Если несколько исп updateAjax()
+    https://www.yiiframework.com/doc/guide/2.0/ru/input-forms#working-with-pjax
+    Пример https://p0vidl0.info/yii2-primeryaem-pjax-na-activeform-i-gridview.html
+    ВОЗМОЖНЫЕ ОШИБКИ:
+        Обновит страницу, если в ответе не найдёт свой pjax-container
+
+Переключение между 2-мя вариантами (LT: 2variant)
+    //todo вынести в style.css "margin-top: 24px;" и "padding-right: 50px;" или создать mt-24
+    <?php
+    $isShowVariantHand = boolval($model->variant2__hand);
+    ?>
+    <div class="wrap_2variant" style="<?=($isShowVariantHand ? "display: none;" : "")?>">
+        <button type="button" class="btn btn-default pull-right" style="margin-top: 24px;" title="Указать вручную" rel="tooltip" tabindex="-1"
+                onclick="$(this).parents('.row:first').find('.wrap_2variant').toggle(300); $(this).parents('.wrap_2variant').find('select').val('');">
+            <span class="glyphicon glyphicon-plus"></span>
+        </button>
+        <div style="padding-right: 50px;">
+            <?="variant1__dropDown"?>
+        </div>
+    </div>
+
+    <div class="wrap_2variant" style="<?=($isShowVariantHand ? "" : "display: none;")?>">
+        <button type="button" class="btn btn-default pull-right" style="margin-top: 24px;" title="Выбрать из списка" rel="tooltip" tabindex="-1"
+                onclick="$(this).parents('.row:first').find('.wrap_2variant').toggle(300); $(this).parents('.wrap_2variant').find('input').val('')">
+            <span class="glyphicon glyphicon-list"></span>
+        </button>
+        <div style="padding-right: 50px;">
+            <?="variant2__hand"?>
+        </div>
+    </div>
+        //.find('.select2-selection__clear').mousedown();
+
+Табы
+    Tabs::widget([
+        'items' => [
+            'tz'=> [
+                'label' => 'ТЗ',
+                'headerOptions'=>['title'=>'Подсказка',],
+                'content' => $this->render('', []),
+                'active' => true,
+            ]
+        ],
+    ]);
+
+
+                                                                              
+                                                                              
+                                                                              
+/****************************************************************************
+* Controller
+*/
+  ,ad8888ba,                                                              88  
+ d8"'    `"8b                             ,d                              88  
+d8'                                       88                              88  
+88              ,adPPYba,   8b,dPPYba,  MM88MMM  8b,dPPYba,   ,adPPYba,   88  
+88             a8"     "8a  88P'   `"8a   88     88P'   "Y8  a8"     "8a  88  
+Y8,            8b       d8  88       88   88     88          8b       d8  88  
+ Y8a.    .a8P  "8a,   ,a8"  88       88   88,    88          "8a,   ,a8"  88  
+  `"Y8888Y"'    `"YbbdP"'   88       88   "Y888  88           `"YbbdP"'   88  
+
+public function behaviors()
+{
+    return [
+        'access' => [
+            'class' => AccessControl::class,
+            'rules' => [
+                [
+                    'allow' => true,
+                    'actions' => ['ajax-find'],
+                    'roles' => ['@'],
+                    //'matchCallback' => function () {//только ajax
+                    //    return Yii::$app->request->getIsAjax();
+                    //},
+                ],
+            ],
+        ],
+    ];
+}
+
+public function actionTest($p1, $date=null){
+    //Валидация параметров у action контроллера
+    $this->validateDate([$date]);
+    if(!$p1) return "Ошибка";
+}
+
+Json action
+	Yii::$app->response->format = yii\web\Response::FORMAT_JSON;
+    return ['result' => 'success'];
+
+Транзакция
+	$transaction = Yii::$app->db->beginTransaction();
+	try{
+	    $flag = true;
+	    foreach ($posts as $post) {
+	        if(!($flag = $post->save())){
+	            $transaction->rollBack();
+	            break;
+	        }
+	    }
+	    if($flag){
+	        $transaction->commit();
+	    }
+	}catch(\Exception $e){
+	    $transaction->rollBack();
+	}
+
+
+Select2 подгружаем по ajax
+public function actionSelect2AjaxFind($q) {
+    Yii::$app->response->format = yii\web\Response::FORMAT_JSON;
+    $items = [//todo-s поиск из базы по строке $q
+        ['id'=>1, 'name'=>'111'],
+        ['id'=>2, 'name'=>'222'],
+    ];
+    $res = ['results'=>[]];
+    foreach ($items as $item) {
+        $res['results'][] = [
+            'id'=> $item['id'],
+            'text'=> $item['name'],
+        ];
+    }
+    return $res;
+}
+    
+    Если требуется разделить на группы
+        $groups = [
+            'Группа 1'=> [
+                ['id'=>1, 'name'=>'111'],
+                ['id'=>2, 'name'=>'222'],
+            ],
+            'Группа 2'=> [
+                ['id'=>3, 'name'=>'333'],
+            ],
+        ];
+        $res = ['results'=>[]];
+        foreach ($groups as $group => $items) {
+            $children = [];
+            foreach ($items as $item) {
+                $children[] = [
+                    'id'=> $item['id'],
+                    'text'=> $item['name'],
+                ];
+            }
+            $res['results'][] = [
+                'text'=> $group,
+                'children'=> $children,
+            ];
+        }
+        return $res;
+
+Typeahead подгружаем по ajax. Как выше Select2AjaxFind только:
+    $res = [];
+    foreach ($items as $item) {
+        $res[] = ['text'=> $item['name']];
+    }
+
+Как после сохранения объекта возвращаться на стр. с фильтром
+	if ($model->load(Yii::$app->request->post())) {
+		//После сохранения
+		return $this->goBack();
+	}else{
+        if(!$model->hasErrors()) \Helper::setReturnUrl(['index']);
+    }
+    Также для кнопки 'Выход' лучше исп. Yii::$app->user->getReturnUrl()
+
+Сохранение связанных данных
+    Использовать SaveRelationsBehavior (Автоматом включает транзакцию, и сохранение связанных в $model->save())
+    https://github.com/la-haute-societe/yii2-save-relations-behavior
+        use SaveRelationsTrait;
+        public function behaviors()
+        {
+            return [
+                'saveRelations' => [
+                    'class' => SaveRelationsBehavior::class,
+                    'relations' => [
+                        'more',
+                    ],
+                ],
+            ];
+        }
+
+        Если связь hasMany, добавить в контроллер:
+            if($model->load($post = Yii::$app->request->post())) {
+                if(!$post['linkedEsd']) $model->linkedEsd=null;
+            }
+
+
+    Если связь hasOne не стандартная (т.е. вместо ['id' => 'invoice_id'])
+        $this->hasOne(Invoices::class, ['contract_id' => 'id']);
+        SaveRelationsBehavior не исп. т.к. выводит ошибку ERROR: null value in column "id" violates not-null constraint ("id"=NULL)
+        Поэтому вручную:
+        $invoice = ($model->invoices ?: new Invoices());
+        if ($model->load(Yii::$app->request->post())) {
+            $flag=true;
+            if($model->save() && $invoice->load(Yii::$app->request->post())){
+                $invoice->contract_id = $model->id;
+                if(!$invoice->save()) $flag=false;
+            }else{ $flag=false; }
+            if($flag){
+                //success
+            }
+        }
+
+Изменение ReturnUrl если перешли на страницу от Plan1 $this->modifyReturnUrlIfPlan1()
+    см Yii2 (архив).txt
+
+        
+
+
+
+
+
+/**************************************************************************************
+* Errors
+*/
+88888888888                                                   
+88                                                            
+88                                                            
+88aaaaa      8b,dPPYba,  8b,dPPYba,   ,adPPYba,   8b,dPPYba,  
+88"""""      88P'   "Y8  88P'   "Y8  a8"     "8a  88P'   "Y8  
+88           88          88          8b       d8  88          
+88           88          88          "8a,   ,a8"  88          
+88888888888  88          88           `"YbbdP"'   88          
+
+ОЖИТАЕМ, ЧТО ИСПРАВИТСЯ ПОСЛЕ ОБНОВЛЕНИЯ
+    kartik-v/yii2-widget-select2
+        select2 в модальном окне внутри GridView не работает параметр 'allowClear' => true
+            При исп. 'filterType' => GridView::FILTER_SELECT2
+            При нажатии на крестик ничего не происходит
+            ПР: Выбрать со склада покупных
+
+Yii2 плагин не находит view которые находятся в модуле
+    https://github.com/nvlad/yii2support/issues/181
+    РЕШЕНИЕ: откатиться до версии 0.10.58.37
+
+Not Found (#404)
+    СИТУАЦИЯ: создали контроллер ChangeUserController, пытаемся открыть http://site.ru/changeUser 
+    РЕШЕНИЕ: Yii2 url регистрозависимые, нужно http://site.ru/change-user
+
+DynaGrid не применяется сохранённый фильтр.
+    СИТУАЦИЯ: Выбираем настройки -- фильтр из списка -- применить -- ничего не происходит
+    РЕШЕНИЕ: Проверить $model->search()
+        if (isset($_GET['BookSearch']) && !$this->load($params)) {
+            return $dataProvider;
+        }
+
+DynaGrid ошибка при применении персонализации таблицы
+    htmlspecialchars() expects parameter 1 to be string, object given
+    СИТУАЦИЯ: Выбираем настройки -- применить
+        Такая же ошибка, когда в коде есть колонка с не существующим attribute
+        yii2-dynagrid  v1.4.7
+    РЕШЕНИЕ: Добавить
+        if(Yii::$app->request->post('visibleKeys')!==null){
+            $data = [];
+        }
+        $dataProvider = new ArrayDataProvider([
+            'allModels' => $data,
+        ]);
+
+The file or directory to be published does not exist: /vendor/bower/jquery/dist 
+    СИТУАЦИЯ: При установке через composer yii2. Создалась папка /vendor/bower-asset/, a просто /bower/ нет
+    РЕШЕНИЕ:
+        php composer.phar global require "fxp/composer-asset-plugin:^1.4"
+        php composer.phar install
+
+(yii2?)[Error 500] Не определено свойство "Post.note".
+    РЕШЕНИЕ: В БД нет поля "note"
+
+Setting read-only property
+    СИТУАЦИЯ: Пытаемся сделать set у relation на подобии $post->author = ...  
+    РЕШЕНИЕ: https://qna.habr.com/answer?answer_id=1628111#answers_list_answer
+
+Grouping error: 7 ERROR: column "fact_addresses.id" must appear in the GROUP BY clause or be used in an aggregate function
+	РЕШЕНИЕ: см. yii2 model.php -- relations -- if($this->id)
+
+ActiveForm событие submit происходит дважды
+    РЕШЕНИЕ:  'validateOnSubmit' => false, https://stackoverflow.com/a/49215565/4831608
+
+
+/*************************************************************************
+* УРОКИ
+*/
+Как обновить relation
+    $model->populateRelation('users', $users);
+    Или $model->populateRelation('users', $model->getUsers()->all());
+
+DynaGrid после изменения названия колонки как обновить сохранения в базе.
+    Иначе у всех пользователей кто делал персанализацию, пропадёт эта колонка.
+    $this->execute("UPDATE dynagrid SET data = REPLACE(data, '0fdca517', 'd0be4401') WHERE id LIKE 'user-index_%'");
+    https://md5calc.com/hash/crc32/str
+
+DynaGrid после изменения ID таблицы как обновить сохранения в базе.
+    $this->execute("UPDATE dynagrid SET id = REPLACE(id, 'journey-index_', 'journey-new_') WHERE id LIKE 'journey-index_%'");
+
+Как создать виджет
+	https://nix-tips.ru/yii2-api-guides/guide-ru-structure-widgets.html с тем дополнением, что создаем в папку app\widgets вместо app\components
+
+Как создать компонент, расширение
+    Пока не выгружаем на github, создавать в components/yii2ListField
+        Папку делать с дефисами yii2-list-field нет смысла, т.к. придётся добавлять 'aliases'
+    Компонент
+        Будет доступен как Yii::$app->db
+        http://www.webapplex.ru/sozdanie-sobstvennogo-komponenta-v-yii-2.x
+            Класс можно назвать просто "Message"
+    Расширение (=модуль)
+        Если нужен controller c action
+            http://plan2.local/listField/default/index
+        Для примера yii2ListField (папка src/ дальше как модуль) или yii2-debug
+
+Как включить debug
+	$config['modules']['debug']['allowedIPs'] = ['*']; 		//Добавить в /frontend/config/main-local.php
+	
+Как убрать из логов debug'er?
+	Поправить config:  'components' => [
+        'log' => [
+            'targets' => [
+                'db'=>[
+                    'except'=>[
+                        'yii\debug\Module*',
+    И чтобы эти ошибки не приходили на почту
+		$config['components']['log']['targets']['email'] = [
+		    'except' => ['yii\debug\Module*'],
+		];
+
+Как jQuery подключать вверху стр.
+	'assetManager' => [
+        'class' => 'yii\web\AssetManager',
+        'appendTimestamp' => YII_ENV_DEV,
+        'bundles' => [
+            'yii\web\JqueryAsset' => [
+                'jsOptions' => [
+                    'position' => yii\web\View::POS_HEAD,
+                ],
+            ],
+        ],
+    ],
+
+Как сделать чтобы style.css генерировалось в папку /web/assets/
+	Переместить style.css в '@app/assets/css/'
+	В классе extends AssetBundle убрать $basePath, $baseUrl. Добавить:
+		public $sourcePath = '@app/assets';
+
+
+Загрузка, прикрепление файлов
+	http://yiico.ru/blog/493-zagruzka-izobrazhenii-i-failov-v-yii2-ih-sohranenie-v-papku-na-servere-i-v-bd
+
+Красивый FileInput
+    https://demos.krajee.com/widget-details/fileinput
+        https://plugins.krajee.com/file-input
+    echo FileInput::widget([
+        'name' => 'file',
+        'pluginOptions' => [
+            'allowedFileExtensions' => ['xlsx'],
+        ]
+    ]);
+
+Как скачать несколько файлов архивом
+    https://qna.habr.com/q/638168#answer_item_1528549
+    Есть на http://genesis-lk.local/ (все файлы дела)
+
+Установка Yii2
+	(1раз нужно для yii2) php composer.phar global require "fxp/composer-asset-plugin:*"
+	composer create-project yiisoft/yii2-app-advanced advanced 2.0.7
+	Переместить файлы из папки advanced в корень
+	init 	(или php init //Потребовалось на linux)
+	.htaccess (скопировать из заготовок)
+		(Для Basic .htaccess) https://github.com/ilopX/yii2-basic-htaccess
+
+	Настройки
+		В конфиг
+			'language' => 'ru-RU',
+            db.php
+            'components' => [
+                'request' => [
+                    'baseUrl' => '',
+                ],
+            ],
+
+	(Если ругается на runtime)
+		sudo chown -R apache:apache runtime web/assets
+        sudo chmod -R 0777 runtime/cache/
+    (Если есть модуль backups)
+        sudo mkdir runtime/backups/
+        sudo chmod 0777 runtime/backups/
+
+
+Как подключить Font Awesome (или др. css, js плагины)
+    https://qna.habr.com/q/142561#answer_item_1377456
+
+Как разделить config (чтобы на локалке были свои настройки БД...) 
+	См. проект plan2 -- commit "Разделение config"
+
+Как вывести сообщения
+		//Сообщения
+        foreach(Yii::$app->session->getAllFlashes() as $type => $messages){
+            foreach($messages as $message){
+                echo "<div class='alert alert-$type' role='alert'>$message</div>";        
+            }
+        }
+
+yii2-starter-kit
+    Как добавить настройку в keyStorage
+        Поиск по проекту is_reminder
+        Миграция нужна только если требуется особое значение по умолчанию
+
+yii2-attachments
+    Как заменить файл
+        1) Таблица attach_file ищем по id -- hash (Пр: b66df31e4...)
+        2) Ищем в папке b6_df_1e -- выгружаем
+
+МИГРАЦИИ
+	1) Создать
+		yii migrate/create create_table
+	2) Наполнить появившийся файл в /migrations/
+	3) Применить
+		yii migrate 1
+			yii migrate --migrationPath=@vendor/kartik-v/yii2-dynagrid/migrations
+    yii migrate/redo //перезагрузка последней
+    yii migrate/history //история, список
+    yii migrate/mark m190812_055840_journey //Установить отметку в истории на заданную миграция (чтобы redo или up делать с неё).
+        
+
+Как миграцию расширения применять автоматически вместе с оновной
+    'controllerMap' => [
+        'migrate' => [
+            'migrationNamespaces' => [
+                'kartik\dynagrid\migrations',
+            ],
+        ],
+    ],
+		
+Настройка проекта PhpStorm для Yii2 
+	Добавление директорий
+		Settings--Directories
+			www - Resouse Root
+			Исключить
+				runtime
+				vendor
+				web/assets
+		Languages & Framworks -- PHP -- добавить в include path
+			vendor
+
+Как создать свой шаблон для gii генератора кода
+	Шаблоны можно взять с mel-rossia
+	1) Создать папку \giiTemplates\crud_my и скопировать в неё содержимое папки \vendor\yiisoft\yii2-gii\generators\crud\default 
+	2) в конфиге web.php добавить:
+		$config['modules']['gii'] = [
+	        'generators' => [
+	            'crud'   => [
+	                'class'     => 'yii\gii\generators\crud\Generator',
+	                'templates' => ['crud_my' => '@app/giiTemplates/crud_my']
+	            ],
+	        ],
+    	];
+    (!) Переопределить сам генератор yii\gii\generators\model\Generator не получится (ошибки JS), не стоит так глубоко лезть. Можно создать ModelGeneratorHelper на крайний случай
+
+Вывод времени formatter->asDatetime() без ошибок
+    Если часовой пояс в PHP и БД указывается одинаковый, то в formatter нужно:
+    'timeZone' => 'Asia/Yekaterinburg',
+    'components' => [
+        'formatter' => [
+            'defaultTimeZone' => 'Asia/Yekaterinburg',//как в timeZone, чтобы не менял при выводе
+        ],    
+
+PHPUnit
+	php vendor/phpunit/phpunit/phpunit tests/unit/FirstTest.php
+
+
+/*************************************************************************
+* ПРОИЗВОДИТЕЛЬНОСТЬ, увеличение скорости загрузки страниц
+*/
+ВЛИЯЕТ
+    (+50%) Больше частота процессора. Кол-во ядер не влияет
+    (50мс) Включить кэширование БД схемы
+        'db' => [//в config
+            'enableSchemaCache' => true,
+        ],
+    (30мс за каждую grid) Исп. \yii\grid\GridView вместо DynaGrid
+    (20мс за каждые 100 вызовов) Вместо Yii::$app->formatter->asDate() исп date('d.m.Y', strtotime()). Поэтому создал asDate()
+
+НЕ ВЛИЯЕТ:
+    HDD -> SSD
+    FileCache -> ApcCache (Apcu)
+
+
+/****************************************
+* Переход с Yii1 на Yii2
+*/
+CHtml::listData() -- ArrayHelper::map()
+app()-> -- Yii::$app->
+align- -- text-
+CHtml::link( -- Html::a(  //createUrl нужно только для Url::toPlan1()
+array( -- [
+Редко бывает
+	$form->hiddenField( -- Html::activeHiddenInput(
+	(regex)\$form->checkBoxRow\(\$model,\s?'(.*?)'\)
+		\$form->field\(\$model,'$1'\)->checkbox\(\)
+	(regex)\$form->numberFieldRow\(\$model,\s?'(.*?)',\s?\[(.*?)\]\)
+		\$form->field\(\$model,'$1'\)->textInput\(\['type'=>'number', $2\]\)
+    (W)icon- -- span.opacity ...
+    ::model()->findByPk( -- ::findOne(
+    Yii::import( -- (убрать)
+
+План переноса раздела на yii2
+    Прописать в план весь функционал
+    Модель. Сгенерировать gii
+        Скопировать labels, св-ва, проверить rules и relations
+        Скопировать методы в закомментированом виде (по ходу будем раскомментировать и проверять)
+    CRUD. Сгенерировать gii
+        index
+            Колонки. Замена grid columns
+                echo -- return
+                $data -- $model
+                'htmlOptions' -- 'contentOptions'
+                    Некоторые поправить, например 'width: 90px'
+                button-column -- (убрать вручную)
+                (regex)\n[\s]*?'type'.*?=>.*?'raw'\, -- 
+                (regex)'name'.*?=> -- 'attribute'=>
+                (regex)'header'.*?=> -- 'label'=>
+                    Для некоторых добавить 'encodeLabel'=>false, 'headerOptions' => ['class'=> 'header-sm'],
+                (regex)'value'.*?=> -- 'content'=>
+            Фильтр
+        form
+            @var $this, $form
+            $this->pageTitle -- $this->title
+            row-fluid show-grid -- row
+            prompt -- (убрать вручную)
+            renderPartial -- echo.. render
+            (regex)'class'\s?=>\s?'span12 -- (убрать вручную)
+            (regex)span([0-9]{1,2}) -- col-md-$1
+            (regex)'maxlength'\s?=>\s?255 -- 'maxlength'=>true
+            (regex!)\$form->textFieldRow\(\$model,\s?'(.*?)',\s?\[(.*?)\]\)
+                \$form->field\(\$model,'$1'\)->textInput\(\[$2\]\)
+            (regex!)\$form->textFieldRow\(\$model,\s?'(.*?)'\)
+                \$form->field\(\$model,'$1'\)->textInput\(\)
+            datepicker -- dateInput();
+            Fix warning
+        Controller
+            app()->request->getQuery( -- Yii::$app->request->get(
+            app()->request->getPost( -- Yii::$app->request->post(
+            Добавить вверху Yii::$app->response->format = yii\web\Response::FORMAT_JSON;
+                Exclude::excludeJS(); -- 
+                $this->renderJson([ -- return [
+                $this->renderPartial( -- return $this->renderAjax(
+                    Убирая параметры 3 и 4
+            $this->performAjaxValidation( -- (убрать)
+            $model->attributes -- заменить на блок:
+                if ($model->load(Yii::$app->request->post())){
+            $_POST[ .. $model->date = NULL; -- (убрать)
+
+    (Завершение)
+        Модель. Проверить закомментированные методы
+        В Yii1 добавить redirect301()
+
+Чтобы от Yii1 обратиться к Yii2 и получить данные (см. "Api, REST.txt")

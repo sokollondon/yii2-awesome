@@ -1,0 +1,31 @@
+Подменю
+Есть на сайтах: http://plan2.local/
+
+ВАРИАНТ №1
+1) Controller или Module
+    public static function getMenu()
+    {
+        return [
+            ['label' => 'Мои подписки', 'url' => ['subscribe/my']],
+            ['label' => 'Все подписки', 'url' => ['subscribe/all'], 'visible' => PefElement::canUpdate()],
+        ];
+    }
+2) view
+    $this->params['menu'] = SubscribeController::getMenu();
+
+
+
+ВАРИАНТ №2 (если несколько подменю или нужно вывести в др. место или для независимого расширения github):
+1) Controller 
+    public static function getMenu()
+    {
+        return \yii\widgets\Menu::widget([
+            'options' => ['class'=>'nav nav-pills nav-pills-sm inline-block my-3'],
+            'items' => [
+                ['label' => 'Мои подписки', 'url' => ['subscribe/my']],
+                ['label' => 'Все подписки', 'url' => ['subscribe/all']],
+            ],
+        ]);
+    }
+2) view
+	<?=SubscribeController::getMenu()?>

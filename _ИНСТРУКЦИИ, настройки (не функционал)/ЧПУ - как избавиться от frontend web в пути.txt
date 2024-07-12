@@ -1,0 +1,25 @@
+1) Для apache в корень положить .htaccess
+2) Добавить:
+Как избавиться от frontend/web в пути
+	\frontend\config\main.php добавить:
+        'urlManager' => [
+            'enablePrettyUrl' => true,
+            'showScriptName' => false,
+            /*'rules' => [
+            ],*/
+        ],
+        'request' => [
+            'baseUrl' => ''
+        ],
+
+Как избавиться от backend/web в пути и заменить его на /admin
+	\backend\config\main.php добавить:
+        'urlManager' => [
+            'enablePrettyUrl' => true,
+            'showScriptName' => false,
+            /*'rules' => [
+            ],*/
+        ],
+        'request' => [
+            'baseUrl' => '/admin'
+        ]
