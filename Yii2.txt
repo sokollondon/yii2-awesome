@@ -33,19 +33,19 @@ Change Log
 	    	->all();
 
             Доп:
-            //->andWhere(['NOT IN', 'status_id', [1,2]])//(!) status_id=null тоже исключится
-            //->andWhere(['!=','status_id', 2])
-            //->andWhere(['IS NOT','date', null])
-            //->andWhere([
-            //    'OR',
-            //    ['>', 'date', '2017-03-23'],
-            //    ['status_id'=>1],
-            //])
-            //->with(['user'])
-            //->joinWith(['user u'],true,'RIGHT JOIN')
-            //->innerJoinWith(['tags'], false)//eagerLoading false убираем жадную загрузку если не требуется выводить
-            //->orderBy(new Expression("id=".implode(' DESC, id=', [2,3])." DESC")),
-            //->orderBy(new Expression("id IN (9) ASC")),
+            ->andWhere(['NOT IN', 'status_id', [1,2]])//(!) status_id=null тоже исключится
+            ->andWhere(['!=','status_id', 2])
+            ->andWhere(['IS NOT','date', null])
+            ->andWhere([
+                'OR',
+                ['>', 'date', '2017-03-23'],
+                ['status_id'=>1],
+            ])
+            ->with(['user'])
+            ->joinWith(['user u'],true,'RIGHT JOIN')
+            ->innerJoinWith(['tags'], false)//eagerLoading false убираем жадную загрузку если не требуется выводить
+            ->orderBy(new Expression("id=".implode(' DESC, id=', [2,3])." DESC")),
+            ->orderBy(new Expression("id IN (9) ASC")),
 
 		$items = Post::findAll([1,2,3]);
 		$items = Post::findOne(['id'=> 1]);

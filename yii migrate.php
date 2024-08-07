@@ -2,6 +2,7 @@
 
 /**
  * PostgreSQL
+ * Типы данных https://postgrespro.ru/docs/postgresql/16/datatype
  */
 class PostgreSQL extends CDbMigration {
 
@@ -14,6 +15,7 @@ class PostgreSQL extends CDbMigration {
             'user_id'    => 'int',//до +2147483647 также как pk(serial)
             'float8'     => 'float8', //дробные числа. 15 дес. разрядов. Макс 123456789123.45 (= double)(в phpDoc исп. float)
             'type_id'    => 'smallint',// до +32767
+            'bigint'     => 'bigint',// до +9223372036854775807
             //'name2'       => "varchar(64)",//NOT NULL || DEFAULT 'val'
             'text'       => 'text',//не ограничена длина
             'date'       => 'date',
@@ -25,7 +27,6 @@ class PostgreSQL extends CDbMigration {
             //$this->execute("ALTER TABLE post ADD CONSTRAINT user_and_name_unique UNIQUE (user_id, name);"); //по двум полям
         $this->execute("COMMENT ON COLUMN planning.quiz.is_active IS 'Активен?'");
             //(!) если в названии поле есть заглавные буквы, то его заключать в "", например contractors.quiz."question_Type"
-            // @link  типы данных http://postgresql.ru.net/manual/datatype-numeric.html
 
         $this->createIndex('post__user_id', '{{post}}', 'user_id');
         $this->addForeignKey('fk_user_id', '{{post}}', 'user_id', '{{user}}', 'id', 'SET NULL', 'CASCADE'); 
