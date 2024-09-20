@@ -80,8 +80,20 @@ SQL
     }
 }
 
-protected function fillDate(){
-    echo "    >>> fillDate: ";
+protected function fillName(){
+    echo "    >>> fillName: ";
+    $ok = 0;
+    foreach ($items as $item) {
+        if($item->updateAttributes(['name_clear' => '123'])){
+            $ok++;
+        }
+        if($ok%2000 == 0 && $ok) echo ".";
+    }
+    echo "$ok \n";
+}
+protected function fillV2(){
+    echo "    >>> fillV2: ";
+    //Если нужно beforeValidate(), afterSave() и т.д.
     $ok = 0;
     $err = [];
     foreach ($items as $item) {
@@ -90,11 +102,11 @@ protected function fillDate(){
         }else{
             $err[] = $item->id;
         }
+        //if($ok%500 == 0 && $ok) echo "."; //Для очень долгих операций показывать прогресс ч-з каждые 500
     }
     echo "$ok \n";
     if($err) echo "Fail (".count($err).") for ids: ".implode(', ',$err)." \n";
 }
-//if($ok%100 == 0) echo "."; //Для очень долгих операций показывать прогресс ч-з каждые 100
 
 
 class hasMany__link_many2many extends CDbMigration

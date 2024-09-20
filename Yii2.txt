@@ -249,7 +249,7 @@ public function search()
             ],
         ],
     ]);
-    if($dataProvider->sort->getAttributeOrder('id')){//иначе не работают одновременно несколько сортировок с Expression. См. Contracts::search()
+    if($dataProvider->sort->getAttributeOrder('id')){ //иначе не работают одновременно несколько сортировок. Если в сортировке по id указано неск. полей. См. Contracts::search()
     	...
     }
     //сорт. по дате
@@ -299,15 +299,15 @@ public function search()
 
     $query->joinWith(['people.user u']);
     $query->andFilterWhere(['ILIKE', 'u.name', $this->f_user_name]);
-    //if($this->customer_f){
+    //if($this->f_customer){
     //    $query->joinWith(['movements.customer c']);
-    //    $query->joinWith(['movements.customer.otherNames on']);
-    //    $query->andWhere('(c.company_name ILIKE :customer_f) OR ("on".name ILIKE :customer_f)', [':customer_f'=>"%$this->customer_f%"]);
+    //    $query->joinWith(['movements.customer.otherNames c_on']);
+    //    $query->andWhere('(c.company_name ILIKE :f_customer) OR (c_on.name ILIKE :f_customer)', [':f_customer'=>"%$this->f_customer%"]);
     //}
-    //Фильтр по связанным из др. БД не получится одним $query, нужен доп. запрос
+    //Доп. запрос нужен для связанных данных если: 1) Из др. БД. 2) Скорость с доп. запросом выше иногда (см. Equipment f_esd)
     if($this->code){
-        $res = ProjectSup::find()->select('Id')->where(['ILIKE', 'Cipher', $this->code])->column();
-        $query->andWhere(['IN', 'project_sup_id', $res]);
+        $res = Equipment::find()->select('id')->where(['ILIKE', 'code', $this->code])->column();
+        $query->andWhere(['IN', 'equipment_id', $res]);
     }
 
     return $dataProvider;
@@ -421,6 +421,7 @@ echo GridView::widget([
             //'contentOptions' => ['class' => 'sss'],
             //'filterOptions' => ['class'=>'datepicker'],
             //'format'=> 'raw',
+            //'enableSorting'=>false,
             //'visible'=>false,
 
             //'pageSummary' => true,//111. Ещё в config 'showPageSummary' => true,
@@ -453,6 +454,14 @@ echo GridView::widget([
             'width'=>'90px',
             'filter'=> Helper::gridFilterDate($model,'date','f_date_to'),
         ],
+        [
+            'class' => MultiSelectColumn::class,
+            'content'=>function(MMMMMM $model){
+                return MultiSelectColumn::getContent($model->id, $model->qty);
+            },
+            'addBtnEdit'=>false,
+        ],
+
 
         [
             'class' => 'app\components\grid\ActionColumn',
