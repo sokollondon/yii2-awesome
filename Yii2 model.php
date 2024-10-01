@@ -80,6 +80,7 @@ class PostMy extends ActiveRecordDefault
     }
     //Ограничение доступа к полям. По умолчанию доступны все которые есть в rules()
     //(!)Не сделать, если есть DynamicForm
+    // только для app\components\ActiveForm
     public function scenarios()
     {
         $s = parent::scenarios();
@@ -88,8 +89,8 @@ class PostMy extends ActiveRecordDefault
         $s[self::SCENARIO_SEARCH] = $sD;//в search() добавить $this->setScenario(self::SCENARIO_SEARCH);
 
         //ВАРИАНТ №1. Можно редактировать только заданные поля
-        $sD=[];
         if(self::canUpdateTZ()){
+            $sD=[];
             $sD = array_merge($sD, ['price','name']);
         }
 

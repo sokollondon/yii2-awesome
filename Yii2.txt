@@ -459,6 +459,10 @@ echo GridView::widget([
             'content'=>function(MMMMMM $model){
                 return MultiSelectColumn::getContent($model->id, $model->qty);
             },
+            //'options' => [
+            //    'buttonIcon' => 'glyphicon glyphicon-ok',
+            //    'sentAjax' => '#pef_characteristics',
+            //],
             'addBtnEdit'=>false,
         ],
 
