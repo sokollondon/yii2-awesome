@@ -177,6 +177,8 @@ class RBAC_Yii2 extends Migration {
         $perm = $auth->getPermission('viewTZ');
         $perm->name = 'viewNEW';
         $auth->update('viewTZ',$perm);
+        $this->execute("UPDATE config.menu_item        SET access = REPLACE(access, 'viewTZ', 'viewNEW') WHERE access LIKE '%viewTZ%'");
+        $this->execute("UPDATE config.subscribe_target SET access = REPLACE(access, 'viewTZ', 'viewNEW') WHERE access LIKE '%viewTZ%'");
     }
 
     public function manualAssign()//Вместо этого использовать AD

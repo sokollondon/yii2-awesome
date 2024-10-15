@@ -156,6 +156,7 @@ class ReportSssController extends Controller
 //        $rich_text = ' ';
 //        if($post->text){
 //            $html = mb_convert_encoding(html_entity_decode($post->text), 'HTML-ENTITIES', 'UTF-8');
+//            //$html = "<!--suppress HtmlDeprecatedTag, HtmlDeprecatedAttribute --><font size='14'>$html</font>";
 //            $rich_text = (new \PhpOffice\PhpSpreadsheet\Helper\Html())->toRichTextObject($html);
 //        }
 //        $sheet->setCellValue("F$pos", $rich_text);

@@ -120,27 +120,11 @@ class PostMy extends ActiveRecordDefault
         return [null => ''] + $list;
     }
 
-    public function beforeValidate()
-    {
-        $this->price = changeCommaToDot($this->price);
-        return parent::beforeValidate();
-    }
-    public function beforeSave($insert) {
-//        if($this->time) $this->time = date("Y-m-d H:i:s", strtotime($this->time));//для MYSQL
-        return parent::beforeSave($insert);
-    }
-    public function afterSave($insert, $changedAttributes){
-        parent::afterSave($insert, $changedAttributes);
-        //your_code
-        //if($this->isAttributeChangedAfterSave('qty', $changedAttributes))//изменились
-    }
-
-    public function isAttributeChangedAfterSave($name, $changedAttributes)
-    {
-        return array_key_exists($name, $changedAttributes) && $this->$name != $changedAttributes[$name];
-    }
-
-
+    //Есть в ActiveRecordTrait
+//    public function isAttributeChangedAfterSave($name, $changedAttributes)
+//    {
+//        return array_key_exists($name, $changedAttributes) && $this->$name != $changedAttributes[$name];
+//    }
 //    public function isValidDate($attribute)//Валидация даты
 //    {
 //        if($this->$attribute=="") $this->$attribute=null;
@@ -155,6 +139,20 @@ class PostMy extends ActiveRecordDefault
 //        $this->$attr = preg_replace('/[\s]{2,}/', ' ', $this->$attr);//убирает двойной пробел
 //    }
 
+    public function beforeValidate()
+    {
+        $this->price = changeCommaToDot($this->price);
+        return parent::beforeValidate();
+    }
+    public function beforeSave($insert) {
+//        if($this->time) $this->time = date("Y-m-d H:i:s", strtotime($this->time));//для MYSQL
+        return parent::beforeSave($insert);
+    }
+    public function afterSave($insert, $changedAttributes){
+        parent::afterSave($insert, $changedAttributes);
+        //your_code
+        //if($this->isAttributeChangedAfterSave('qty', $changedAttributes))//изменились
+    }
 
     public function getUser()
     {

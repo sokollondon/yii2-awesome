@@ -227,7 +227,7 @@ public function search()
         'reason',
     ];
     $dgHelper = new DynaGridHelper();
-    $dgHelper->mergeIfColVisible('customer_id',true,$with,['customer']);
+    $dgHelper->mergeIfColVisible('customer_id',true,$with,['customer']); //обязательно д.б. DynaGridHelper::setId(); см. PHPDoc
     $query = self::find()->with($with)->alias('t');
     //Сортировка связанных данных
     //$query = self::find()->with([
@@ -249,7 +249,9 @@ public function search()
             ],
         ],
     ]);
-    if($dataProvider->sort->getAttributeOrder('id')){ //иначе не работают одновременно несколько сортировок. Если в сортировке по id указано неск. полей. См. Contracts::search()
+    if($dataProvider->sort->getAttributeOrder('id')){
+        //МИНУСЫ: не работает сортировка по умолчанию, сохранённая в персонализации
+        //Раньше, когда использовали enableMultiSort требовалось: иначе не работают одновременно несколько сортировок. Если в сортировке по id указано неск. полей. и по умолчанию сортируется по id  См. Contracts::search()
     	...
     }
     //сорт. по дате
@@ -287,7 +289,12 @@ public function search()
         //Вариант №2 int $query->andWhere(['IS'.($this->esd_id=='yes' ? ' NOT' : ''), 'esd_id', null]);
     }//Вариант №3 $this->is_active=='0'
 
-    //Фильтр: есть/нету связанных данных hasMany
+    if($this->f_date){//Фильтр связанных данных hasMany
+        $query->joinWith(['tags']);
+        $query->groupBy('t.id');
+        $query->andFilterWhere(['between', 'tags.date', $this->f_date, $this->f_date_to]);
+    }
+    //Фильтр (есть/нету) связанных данных hasMany 
     if($this->f_hasTags == 'yes'){
         $query->innerJoinWith(['tags']);
         $query->groupBy('t.id');//без этого пагинация будет глючить и кол-во
