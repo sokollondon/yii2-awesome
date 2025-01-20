@@ -277,7 +277,7 @@ public function search()
     //$query->andFilterWhere(['ILIKE', 'name', '%'.$this->name, false]);
     $query->andFilterWhere(['IN', 'status_id', [1, 2]]);
     $query->andFilterCompare('price', changeCommaToDot($this->price));//>100, <100
-    $query->andFilterWhere(['between', 'date', $this->date, $this->f_date_to]);//включая границы диапозона
+    $query->andFilterWhere(['between', 'date', $this->date['from'], $this->date['to']]);//включая границы диапозона
     if($this->tz != ''){//числовые поля
         $query->andWhere("tz::text ILIKE :tz", [':tz'=>"%$this->tz"]);
         //Вариант 2
@@ -285,14 +285,14 @@ public function search()
         //$query->andFilterWhere(['tz' => $this->tz]);
     }
     if($this->is_default){
-        $query->andWhere(['is_default'=>($this->is_default=='yes' ? true : false)]);
+        $query->andWhere(['is_default'=>$this->is_default]);//yes, no срабатывает
         //Вариант №2 int $query->andWhere(['IS'.($this->esd_id=='yes' ? ' NOT' : ''), 'esd_id', null]);
     }//Вариант №3 $this->is_active=='0'
 
     if($this->f_date){//Фильтр связанных данных hasMany
         $query->joinWith(['tags']);
         $query->groupBy('t.id');
-        $query->andFilterWhere(['between', 'tags.date', $this->f_date, $this->f_date_to]);
+        $query->andFilterWhere(['between', 'tags.date', $this->f_date['from'], $this->f_date['to']]);
     }
     //Фильтр (есть/нету) связанных данных hasMany 
     if($this->f_hasTags == 'yes'){
@@ -342,6 +342,7 @@ public function search()
 
 .form-group-m0
     Чтобы у input указать внизу примечание (вместо hint), добавить этот класс родителю
+    .label-m0
 
 <span rel="tooltip" title="Короткая" class="right opacity"><i class="glyphicon glyphicon-question-sign"></i></span>
 
@@ -459,7 +460,7 @@ echo GridView::widget([
             'attribute'=>'date',
             'format'=>'date',
             'width'=>'90px',
-            'filter'=> Helper::gridFilterDate($model,'date','f_date_to'),
+            'filter'=> Helper::gridFilterDate($model,'date'),
         ],
         [
             'class' => MultiSelectColumn::class,
@@ -1047,7 +1048,7 @@ ActiveForm событие submit происходит дважды
     $model->populateRelation('users', $users);
     Или $model->populateRelation('users', $model->getUsers()->all());
 
-DynaGrid после изменения названия колонки как обновить сохранения в базе.
+DynaGrid после изменения названия колонки как обновить сохранения в базе (переименовать).
     Иначе у всех пользователей кто делал персанализацию, пропадёт эта колонка.
     $this->execute("UPDATE dynagrid SET data = REPLACE(data, '0fdca517', 'd0be4401') WHERE id LIKE 'user-index_%'");
     https://md5calc.com/hash/crc32/str
@@ -1249,16 +1250,25 @@ PHPUnit
 /****************************************
 * Переход с Yii1 на Yii2
 */
+app()->formatter->asDate( -- asDate(
 CHtml::listData() -- ArrayHelper::map()
 app()-> -- Yii::$app->
 align- -- text-
 CHtml::link( -- Html::a(  //createUrl нужно только для Url::toPlan1()
+numberFormatter-> -- formatter->
+    formatDecimal( -- asDecimal(
+    formatCurrency( -- asCurrency(
 array( -- [
+(regex)(\$this->|Yii::\$app->|ApiPlan2::)createUrl\(\s*["']([^,]*?)["']\s*\)
+    Url::to(['$2'])
+(regex)(\$this->|Yii::\$app->|ApiPlan2::)createUrl\(\s*["']([^,]*?)["']\s*,\s*\[
+    Url::to(['$2',
 Редко бывает
 	$form->hiddenField( -- Html::activeHiddenInput(
-	(regex)\$form->checkBoxRow\(\$model,\s?'(.*?)'\)
+    (regex)format\("##,##0.00",\s* -- asDecimal(
+	(regex)\$form->checkBoxRow\(\$model,\s*'(.*?)'\)
 		\$form->field\(\$model,'$1'\)->checkbox\(\)
-	(regex)\$form->numberFieldRow\(\$model,\s?'(.*?)',\s?\[(.*?)\]\)
+	(regex)\$form->numberFieldRow\(\$model,\s*'(.*?)',\s*\[(.*?)\]\)
 		\$form->field\(\$model,'$1'\)->textInput\(\['type'=>'number', $2\]\)
     (W)icon- -- span.opacity ...
     ::model()->findByPk( -- ::findOne(
@@ -1270,32 +1280,48 @@ array( -- [
         Скопировать labels, св-ва, проверить rules и relations
         Скопировать методы в закомментированом виде (по ходу будем раскомментировать и проверять)
     CRUD. Сгенерировать gii
+        Все view в 1 файл для удобства рефакторинга. Найти по вложенным render и url
         index
             Колонки. Замена grid columns
                 echo -- return
-                $data -- $model
                 'htmlOptions' -- 'contentOptions'
-                    Некоторые поправить, например 'width: 90px'
+                    Некоторые поправить, например 'width: 90px', text-right или select-filter(убрать)
                 button-column -- (убрать вручную)
-                (regex)\n[\s]*?'type'.*?=>.*?'raw'\, -- 
-                (regex)'name'.*?=> -- 'attribute'=>
-                (regex)'header'.*?=> -- 'label'=>
+                $data -- $model
+                (regex)\(\$model\)\s*\{\s*\/\*\* @var \$model (\w+) \*\/ -- ($1 \$model){
+                (regex)\n\s*'type'.*?=>.*?'raw'\, -- 
+                (regex)'name'\s*=> -- 'attribute'=>
+                (regex)'header'\s*=> -- 'label'=>
                     Для некоторых добавить 'encodeLabel'=>false, 'headerOptions' => ['class'=> 'header-sm'],
-                (regex)'value'.*?=> -- 'content'=>
+                (regex)'value'\s*=> -- 'content'=>
             Фильтр
+            Оптимизация кол-ва запросов
         form
+            TbActiveForm -- ActiveForm
+                $this->endWidget() -- ActiveForm::end()
             @var $this, $form
             $this->pageTitle -- $this->title
-            row-fluid show-grid -- row
-            prompt -- (убрать вручную)
-            renderPartial -- echo.. render
-            (regex)'class'\s?=>\s?'span12 -- (убрать вручную)
+            prompt, fieldset, clientScript, labelEx -- (убрать вручную)
+            renderPartial -- echo.. render (убирая параметры 3 и 4)
+            (regex)row-fluid show-grid\s*(no-margin-bottom|no-margin-top|no-margin|mb-0)?
+                row (потом проверить row-fluid)
+            (regex)'class'\s*=>\s*'span12'(,\s*)? -- (убрать вручную)
+            (regex)'class'\s*=>\s*'span12\s* -- 'class'=>'
             (regex)span([0-9]{1,2}) -- col-md-$1
-            (regex)'maxlength'\s?=>\s?255 -- 'maxlength'=>true
-            (regex!)\$form->textFieldRow\(\$model,\s?'(.*?)',\s?\[(.*?)\]\)
-                \$form->field\(\$model,'$1'\)->textInput\(\[$2\]\)
-            (regex!)\$form->textFieldRow\(\$model,\s?'(.*?)'\)
-                \$form->field\(\$model,'$1'\)->textInput\(\)
+            (regex)'maxlength'\s*=>\s*255 -- 'maxlength'=>true
+            (regex!)\$form->(dropDownListRow|dropDownList)\(\s*\$model,\s*["'](.*?)["'],\s*
+                \$form->field\(\$model,'$2'\)->dropDownList\(
+            (regex!)\$form->(textFieldRow|textField)\(\$model,\s*'(.*?)',\s*\[(.*?)\]\)
+                \$form->field\(\$model,'$2'\)->textInput\(\[$3\]\)
+            (regex!)\$form->(textFieldRow|textField)\(\$model,\s*'(.*?)'\)
+                \$form->field\(\$model,'$2'\)->textInput\(\)
+            (regex)\$form->(textAreaRow|textArea)\(\$model,\s*'(.*?)',\s*\[(.*?)\]\)
+                \$form->field\(\$model,'$2'\)->textarea\(\[$3\]\)
+            (regex!)\$this->widget\('bootstrap.widgets.TbButton',\s*\[\s*'label'\s*=>\s*'(.*?)',\s*'url'\s*=>\s*(.*),\s*'htmlOptions'\s*=>\s*
+                echo Html::a\('$1', $2,
+                + убрать ] в конце и 1 табуляцию
+            (regex)\$this->widget\('bootstrap.widgets.TbTabs',\s*\[\s*'type'\s*=>\s*'tabs',\s*'tabs'\s*=>\s*
+                echo Tabs::widget([\n\t'items' => 
             datepicker -- dateInput();
             Fix warning
         Controller
@@ -1308,7 +1334,7 @@ array( -- [
                     Убирая параметры 3 и 4
             $this->performAjaxValidation( -- (убрать)
             $model->attributes -- заменить на блок:
-                if ($model->load(Yii::$app->request->post())){
+                if($model->load(Yii::$app->request->post())){
             $_POST[ .. $model->date = NULL; -- (убрать)
 
     (Завершение)

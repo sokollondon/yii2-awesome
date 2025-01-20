@@ -38,10 +38,6 @@ class PostMy extends ActiveRecordDefault
             [['user_id'], 'required'],
             [['name'], 'string', 'max' => 255],
             [['text'], 'string'],
-            ['reason_hand', 'required', 'when' => function(self $model) {return $model->reason_id == 9;}
-            , 'whenClient' => "function (attribute, value) {
-                return $('select[name=\"PostMy[reason_id]\"]').val() == 9;
-            }"],//,'enableClientValidation' => false
             [['user_id'], 'integer'],
             [['price'], 'number'],//float  //'min'=>0.01
             [['price'], 'number','enableClientValidation' => false],//убирает валидацию на стороне клиента
@@ -51,6 +47,11 @@ class PostMy extends ActiveRecordDefault
             ['user_id', 'unique', 'targetAttribute' => ['user_id', 'list_id']],//уникальность по двум полям
             [['file'], 'file', 'extensions' => 'doc, docx', 'maxSize' => 3*1024*1024, 'tooBig' => 'Максимальный размер 3 Мб', 'checkExtensionByMimeType'=> false],
             ['email', 'email'],
+            [['tz'], 'match', 'pattern' => '/^NEW$|^\d+$/'],//'NEW' или целое число
+            ['reason_hand', 'required', 'when' => function(self $model) {return $model->reason_id == 9;}
+                , 'whenClient' => "function (attribute, value) {
+                return $('select[name=\"PostMy[reason_id]\"]').val() == 9;
+            }"],//,'enableClientValidation' => false
             [['user_id'], 'exist', 'skipOnError' => true, 'targetClass' => User::class, 'targetAttribute' => ['user_id' => 'id']],
             //Ограничение по сценарию. Ещё вариант scenarios() ниже
             [['status_id'], 'required', 'except'=>'updateMultiple'],

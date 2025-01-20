@@ -40,6 +40,7 @@ CRUD списков и добавление к модели (hasOne, hasMany)
      * @property ListField[] $works
      */
     class Contracts {
+        use SaveRelationsTrait;
         public function behaviors()
         {
             return [
@@ -51,8 +52,14 @@ CRUD списков и добавление к модели (hasOne, hasMany)
                             'list_id' => ListField::LIST_CONTRACT_WORKS
                         ]],
                     ],
+                    'checkRelationsSafe' => true,
                 ],
             ];
+        }
+        public function rules()
+        {
+            return [
+                [['works'], 'safe'],
         }
         public function getWorks2contract()
         {

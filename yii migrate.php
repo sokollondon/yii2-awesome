@@ -284,7 +284,7 @@ class menu_Yii2 extends Migration {
 
 
         //$item->save();//изменение
-        Yii::$app->cache->flush();
+        //Yii::$app->cache->flush();
         (new ApiPlan1)->flushCache();
         // Plan1->flushCache работает на beta и прод (не на локалке)
 

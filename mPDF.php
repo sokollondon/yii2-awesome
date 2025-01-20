@@ -11,7 +11,6 @@ class ReportPdfController extends Controller
     public function actionPrint($id)
     {
         $content = $this->renderPartial('_print');
-
         $pdf = new Pdf([
             'content' => $content,
             'cssInline' => file_get_contents(Yii::getAlias('@app/assets/css/pdf.css')),
@@ -31,6 +30,7 @@ class ReportPdfController extends Controller
  */
 $pdf = new Pdf([
     'cssFile' => '',
+    'orientation'=>'L',
     'methods' => [
         'SetHeader'=>['Report_Header'],
     ]
@@ -77,6 +77,7 @@ $pdf = new Pdf([
     <div style="float: right;width: 320px;" class="text-right">Справа</div>
     <p class="m-0">Слева</p>
 
+    <div class="double_strip_header">Заголовок</div><br>
     <!-- .table-p-1  -->
     <table class="big table-p-0 table-width-auto align-top">
         <tr>
