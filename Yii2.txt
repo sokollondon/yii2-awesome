@@ -59,6 +59,7 @@ Change Log
             //->scalar();
             //->count();
             //->select('id')->column();
+            //->select('name')->indexBy('id')->column();
 
 	/****************************
 	* PDO
@@ -90,9 +91,7 @@ Change Log
             ]);
 
         Удаление
-        	Post::deleteAll("user_id=:user_id AND is_active = true",[
-	            ':user_id'=>$this->id
-	        ]);
+        	Post::deleteAll(['user_id' => 1]);
 
     Влияет ли кол-во колонок БД на ПРОИЗВОДИТЕЛЬНОСТЬ?
         PDO (->asArray()) совсем не влияет.
@@ -141,6 +140,7 @@ Change Log
 
 	Исключения
         throw new \app\components\ForbiddenHttpException();
+        throw new \app\components\InfoException('Сообщение_пользователю_не_запишется_в_логи_ошибок');
         throw new yii\web\NotFoundHttpException('Страница не найдена');
         throw new yii\web\BadRequestHttpException();
         throw new yii\web\ServerErrorHttpException('');
@@ -222,12 +222,12 @@ Yii::$app->keyStorage->get('is_reminder')
 
 public function search()
 { //Для DynaGrid нужно, чтобы в модели был метод search() и без доп. параметров
-    $params = Yii::$app->request->queryParams;
+    $this->load(Yii::$app->request->queryParams);
     $with =[
         'reason',
     ];
     $dgHelper = new DynaGridHelper();
-    $dgHelper->mergeIfColVisible('customer_id',true,$with,['customer']); //обязательно д.б. DynaGridHelper::setId(); см. PHPDoc
+    $dgHelper->mergeIfColVisible('customer_id', true, $with, ['customer']); //обязательно д.б. DynaGridHelper::setId(); см. PHPDoc
     $query = self::find()->with($with)->alias('t');
     //Сортировка связанных данных
     //$query = self::find()->with([
@@ -265,10 +265,6 @@ public function search()
     //    'desc' => ['category.name' => SORT_DESC],
     //];
 
-    if (!$this->load($params)) {
-        return $dataProvider;
-    }
-
     $query->andFilterWhere([
         'id' => $this->id,
         'date' => $this->date,
@@ -278,27 +274,27 @@ public function search()
     $query->andFilterWhere(['IN', 'status_id', [1, 2]]);
     $query->andFilterCompare('price', changeCommaToDot($this->price));//>100, <100
     $query->andFilterWhere(['between', 'date', $this->date['from'], $this->date['to']]);//включая границы диапозона
-    if($this->tz != ''){//числовые поля
-        $query->andWhere("tz::text ILIKE :tz", [':tz'=>"%$this->tz"]);
+    if ($this->tz != '') {//числовые поля
+        $query->andWhere("tz::text ILIKE :tz", [':tz' => "%$this->tz"]);
         //Вариант 2
         //$this->tz = (int)$this->tz;
         //$query->andFilterWhere(['tz' => $this->tz]);
     }
-    if($this->is_default){
-        $query->andWhere(['is_default'=>$this->is_default]);//yes, no срабатывает
+    if ($this->is_default) {
+        $query->andWhere(['is_default' => $this->is_default]);//yes, no срабатывает
         //Вариант №2 int $query->andWhere(['IS'.($this->esd_id=='yes' ? ' NOT' : ''), 'esd_id', null]);
     }//Вариант №3 $this->is_active=='0'
 
-    if($this->f_date){//Фильтр связанных данных hasMany
+    if ($this->f_date) {//Фильтр связанных данных hasMany
         $query->joinWith(['tags']);
         $query->groupBy('t.id');
         $query->andFilterWhere(['between', 'tags.date', $this->f_date['from'], $this->f_date['to']]);
     }
     //Фильтр (есть/нету) связанных данных hasMany 
-    if($this->f_hasTags == 'yes'){
+    if ($this->f_hasTags == 'yes') {
         $query->innerJoinWith(['tags']);
         $query->groupBy('t.id');//без этого пагинация будет глючить и кол-во
-    }elseif($this->f_hasTags == 'no'){
+    } elseif ($this->f_hasTags == 'no') {
         $query->joinWith(['tags tags']);
         $query->andWhere(['IS', 'tags.id', null]);
     }
@@ -306,13 +302,13 @@ public function search()
 
     $query->joinWith(['people.user u']);
     $query->andFilterWhere(['ILIKE', 'u.name', $this->f_user_name]);
-    //if($this->f_customer){
+    //if ($this->f_customer) {
     //    $query->joinWith(['movements.customer c']);
     //    $query->joinWith(['movements.customer.otherNames c_on']);
-    //    $query->andWhere('(c.company_name ILIKE :f_customer) OR (c_on.name ILIKE :f_customer)', [':f_customer'=>"%$this->f_customer%"]);
+    //    $query->andWhere('(c.company_name ILIKE :f_customer) OR (c_on.name ILIKE :f_customer)', [':f_customer' => "%$this->f_customer%"]);
     //}
     //Доп. запрос нужен для связанных данных если: 1) Из др. БД. 2) Скорость с доп. запросом выше иногда (см. Equipment f_esd)
-    if($this->code){
+    if ($this->code) {
         $res = Equipment::find()->select('id')->where(['ILIKE', 'code', $this->code])->column();
         $query->andWhere(['IN', 'equipment_id', $res]);
     }
@@ -396,89 +392,90 @@ echo GridView::widget([
         'name:raw:Заголовок',
         'user.name', //relation, без фильтра
         [
-            'attribute'=>'name',
-            'content'=>function(MMMMMM $model){
+            'attribute' => 'name',
+            'content' => function(MMMMMM $model) {
                 return $model->name;
             },
         ],
         [
-            'attribute'=>'is_default',
-            'content'=>function(MMMMMM $model){
+            'attribute' => 'is_default',
+            'content' => function(MMMMMM $model) {
                 return $model->is_default ? Helper::icon('ok','Да') : '';
             },
-            'filter' =>['yes'=>'Да', 'no'=>'Нет'],
+            'filter' => ['yes' => 'Да', 'no' => 'Нет'],
             //'format'=>'boolean',//вариант 2 (авт. заполнит content, filter...)
         ],
         [
-            'attribute'=>'user_id',
-            //'attribute'=>'user.name',//todo проверить для DynaGrid
-            'label'=>'Дата <br>отгрузки', 'encodeLabel'=>false, 'headerOptions' => ['class'=> 'header-sm'],
-            //'label'=>Helper::gridLabel('₽','Валюта'), 'encodeLabel'=>false,
-            ////'header'=>'Пользователь2',//без сортировки
-            'content'=>function(MMMMMM $model){
+            'attribute' => 'user_id',
+            //'attribute' => 'user.name',
+            'label' => 'Дата <br>отгрузки', 'encodeLabel' => false, 'headerOptions' => ['class' => 'header-sm'],
+            //'label' => Helper::gridLabel('₽','Валюта'), 'encodeLabel' => false,
+            ////'header' => 'Пользователь2',//без сортировки
+            'content' => function(MMMMMM $model){
                 return $model->user->name;
+                //return Helper::gridTruncate(nl2br($model->note), 20);
             },
             //'value' => 'user.name' //(!)при рефакторинге поле не найдёт
-            'filter'=>Post::getList(),
+            'filter' => Post::getList(),
             'filterType' => GridView::FILTER_SELECT2,
             //'filterWidgetOptions' => [
             //    'options' => ['multiple' => true],//доп: #contracts-status_id+.select2 .select2-selection{max-width:60px;}
             //    'pluginOptions' => ['dropdownParent' => new \yii\web\JsExpression('$(".modal")')],
             //],
-            //'filter'=>Html::activeTextInput($model, 'reason_str', ['class'=>'form-control']),
+            //'filter' => Html::activeTextInput($model, 'reason_str', ['class' => 'form-control']),
             //'contentOptions' => ['class' => 'sss'],
             //'filterOptions' => ['class'=>'datepicker'],
-            //'format'=> 'raw',
-            //'enableSorting'=>false,
-            //'visible'=>false,
+            //'format' => 'raw',
+            //'enableSorting' => false,
+            //'visible' => false,
 
             //'pageSummary' => true,//111. Ещё в config 'showPageSummary' => true,
-            //'pageSummary'=> function($sum) { return Yii::$app->formatter->asCurrency($sum, 'RUR'); },
-            'pageSummary'=> function() use ($dataProvider) {//если не хватает функционала https://demos.krajee.com/grid
+            //'pageSummary' => function($sum) { return Yii::$app->formatter->asCurrency($sum, 'RUR'); },
+            'pageSummary' => function() use ($dataProvider) {//если не хватает функционала https://demos.krajee.com/grid
                 $sum = 0;
                 foreach ($dataProvider->models as $model) {/** @var $model MMMM */
                 }
                 return Helper::gridFormatAsInteger($sum);
             },
-            'pageSummaryOptions'=>['title'=>'t'],
+            'pageSummaryOptions' => ['title' => 't'],
         ],
         [
-            'attribute'=>'price',
-            'content'=>function(MMMMMM $model){
+            'attribute' => 'price',
+            'content' => function(MMMMMM $model) {
                 return Helper::gridFormatAsInteger($model->price);
             },
             'hAlign' => 'right',
-            'filterOptions' => ['title'=>"< 500 000 \n>= 2 000 000"],
-            'filter' => Html::activeTextInput($model,'price',['class'=>'form-control js-only-float_f']),
+            'filterOptions' => ['title' => "< 500 000 \n>= 2 000 000"],
+            'filter' => Html::activeTextInput($model, 'price', ['class'=>'form-control js-only-float_f']),
         ],
         [
-            'attribute'=>'qty',
-            'filter' => Html::activeTextInput($model,'qty',['class'=>'form-control js-only-number_f']),
+            'attribute' => 'qty',
+            'filter' => Html::activeTextInput($model, 'qty', ['class' => 'form-control js-only-number_f']),
         ],
         [
         	//Дата. Показать фильтр
-            'attribute'=>'date',
-            'format'=>'date',
-            'width'=>'90px',
-            'filter'=> Helper::gridFilterDate($model,'date'),
+            'attribute' => 'date',
+            'format' => 'date',
+            'width' => '90px',
+            'filter' => Helper::gridFilterDate($model, 'date'),
         ],
         [
             'class' => MultiSelectColumn::class,
-            'content'=>function(MMMMMM $model){
+            'content' => function(MMMMMM $model) {
                 return MultiSelectColumn::getContent($model->id, $model->qty);
             },
             //'options' => [
             //    'buttonIcon' => 'glyphicon glyphicon-ok',
-            //    'sentAjax' => '#pef_characteristics',
+            //    'sentAjax' => '#pef_list',
             //],
-            'addBtnEdit'=>false,
+            'addBtnEdit' => false,
         ],
 
 
         [
             'class' => 'app\components\grid\ActionColumn',
             'template' => '{change}',
-            //'width'=>'90px',
+            //'width' => '90px',
             'buttons' => [
                 'change' => function ($url) {
                     return Html::a('<i class="glyphicon glyphicon-refresh"></i>',$url);
@@ -604,10 +601,11 @@ echo GridView::widget([
         'pluginOptions' => ['allowClear' => true],
     ]);
     	//Дополнительно js
-    		//Очистить выбранное значение
-    		$('#id').find('.select2-selection__clear').mousedown();
+    		//Очистить выбранное значение (работает только если указан 'placeholder')
+            $('#id').val(null).trigger('change');
+                //(Вариант 2) $('#id').find('.select2-selection__clear').mousedown();
     		//Изменить выбранное значение
-    		$('select').val("1").trigger("change");
+    		$('#id').val('1').trigger('change');
     		//Если выводим в модальном окне, добавить в pluginOptions
     			'dropdownParent' => new \yii\web\JsExpression('$("#modal_default")'),
         Доп. css
@@ -617,7 +615,7 @@ echo GridView::widget([
         См. Select2::widget()
 	Подгружаемый по ajax
 		<?= $form->field($model, 'customer_id')->widget(Select2::class, [
-            'initValueText'=> $model->customer->company_name,
+            'initValueText' => $model->customer->company_name,
             'options' => ['placeholder' => ''],
             'pluginOptions' => [
                 'allowClear' => true,
@@ -637,7 +635,7 @@ echo GridView::widget([
 			$('customer_id').html('<option value="11">Значение</option>').change();
             //Доп.
                 'pluginEvents' => [
-                    "select2:selecting" => "function(e) { console.info(e.params.args.data); }",
+                    'select2:selecting' => "function(e) { console.info(e.params.args.data); }",
                 ],
                 'pluginOptions' => [
                     'escapeMarkup' => new JsExpression('function (markup) { return markup; }'),
@@ -738,8 +736,8 @@ echo GridView::widget([
         ]])?>
 
 NumberField
-    $form->field($model, 'qty')->textInput(['type'=>'number', 'min'=>0]);
-        'step'=>'any', //для дробных чисел
+    $form->field($model, 'qty')->textInput(['type' => 'number', 'min' => 0]);
+        'step' => 'any', //для дробных чисел
 
 TinyMCE
     <?php
@@ -758,7 +756,7 @@ TinyMCE
         plugins: 'lists',
         toolbar: 'numlist'
 textarea
-    <?=$form->field($model, 'note')->textarea(['style'=>'height: 76px'])?>
+    <?=$form->field($model, 'note')->textarea(['style' => 'height: 76px'])?>
     //['rows' => 3] лучше не делать, т.к. в firefox будет другая высота
 
 Pjax
@@ -1281,27 +1279,12 @@ array( -- [
         Скопировать методы в закомментированом виде (по ходу будем раскомментировать и проверять)
     CRUD. Сгенерировать gii
         Все view в 1 файл для удобства рефакторинга. Найти по вложенным render и url
-        index
-            Колонки. Замена grid columns
-                echo -- return
-                'htmlOptions' -- 'contentOptions'
-                    Некоторые поправить, например 'width: 90px', text-right или select-filter(убрать)
-                button-column -- (убрать вручную)
-                $data -- $model
-                (regex)\(\$model\)\s*\{\s*\/\*\* @var \$model (\w+) \*\/ -- ($1 \$model){
-                (regex)\n\s*'type'.*?=>.*?'raw'\, -- 
-                (regex)'name'\s*=> -- 'attribute'=>
-                (regex)'header'\s*=> -- 'label'=>
-                    Для некоторых добавить 'encodeLabel'=>false, 'headerOptions' => ['class'=> 'header-sm'],
-                (regex)'value'\s*=> -- 'content'=>
-            Фильтр
-            Оптимизация кол-ва запросов
+        Ctrl+Alt+L весь код
         form
             TbActiveForm -- ActiveForm
                 $this->endWidget() -- ActiveForm::end()
-            @var $this, $form
             $this->pageTitle -- $this->title
-            prompt, fieldset, clientScript, labelEx -- (убрать вручную)
+            prompt, fieldset, clientScript, labelEx, TbModal -- (убрать вручную)
             renderPartial -- echo.. render (убирая параметры 3 и 4)
             (regex)row-fluid show-grid\s*(no-margin-bottom|no-margin-top|no-margin|mb-0)?
                 row (потом проверить row-fluid)
@@ -1309,19 +1292,19 @@ array( -- [
             (regex)'class'\s*=>\s*'span12\s* -- 'class'=>'
             (regex)span([0-9]{1,2}) -- col-md-$1
             (regex)'maxlength'\s*=>\s*255 -- 'maxlength'=>true
-            (regex!)\$form->(dropDownListRow|dropDownList)\(\s*\$model,\s*["'](.*?)["'],\s*
+            (regex)\$form->(dropDownListRow|dropDownList)\(\s*\$model,\s*["'](.*?)["'],\s*
                 \$form->field\(\$model,'$2'\)->dropDownList\(
-            (regex!)\$form->(textFieldRow|textField)\(\$model,\s*'(.*?)',\s*\[(.*?)\]\)
+            (regex)\$form->(textFieldRow|textField)\(\$model,\s*'(.*?)',\s*\[(.*?)\]\)
                 \$form->field\(\$model,'$2'\)->textInput\(\[$3\]\)
-            (regex!)\$form->(textFieldRow|textField)\(\$model,\s*'(.*?)'\)
+            (regex)\$form->(textFieldRow|textField)\(\$model,\s*'(.*?)'\)
                 \$form->field\(\$model,'$2'\)->textInput\(\)
             (regex)\$form->(textAreaRow|textArea)\(\$model,\s*'(.*?)',\s*\[(.*?)\]\)
                 \$form->field\(\$model,'$2'\)->textarea\(\[$3\]\)
+            (regex)\$this->widget\('bootstrap.widgets.TbTabs',\s*\[\s*'type'\s*=>\s*'tabs',\s*'tabs'\s*=>\s*
+                echo Tabs::widget([\n\t'items' => 
             (regex!)\$this->widget\('bootstrap.widgets.TbButton',\s*\[\s*'label'\s*=>\s*'(.*?)',\s*'url'\s*=>\s*(.*),\s*'htmlOptions'\s*=>\s*
                 echo Html::a\('$1', $2,
                 + убрать ] в конце и 1 табуляцию
-            (regex)\$this->widget\('bootstrap.widgets.TbTabs',\s*\[\s*'type'\s*=>\s*'tabs',\s*'tabs'\s*=>\s*
-                echo Tabs::widget([\n\t'items' => 
             datepicker -- dateInput();
             Fix warning
         Controller
@@ -1336,7 +1319,21 @@ array( -- [
             $model->attributes -- заменить на блок:
                 if($model->load(Yii::$app->request->post())){
             $_POST[ .. $model->date = NULL; -- (убрать)
-
+        index
+            Колонки. Замена grid columns
+                (! значит проверить каждую, не Replace All)
+                    echo -- return
+                    button-column -- (убрать вручную)
+                    $data -- $model
+                    'htmlOptions' -- 'contentOptions'
+                        Некоторые поправить, например 'width: 90px', text-right или select-filter(убрать)
+                (regex)\(\$model\)\s*\{\s*\/\*\* @var \$model (\w+) \*\/ -- ($1 \$model){
+                (regex)\n\s*'type'.*?=>.*?'raw'\, -- 
+                (regex)'name'\s*=> -- 'attribute' =>
+                (regex)'header'\s*=> -- 'label' =>
+                (regex)'value'\s*=> -- 'content' =>
+            Фильтр
+            Оптимизация кол-ва запросов
     (Завершение)
         Модель. Проверить закомментированные методы
         В Yii1 добавить redirect301()

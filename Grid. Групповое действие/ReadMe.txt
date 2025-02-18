@@ -4,12 +4,20 @@ Grid. Групповое действие
 
 УСТАНОВКА (1ч):
 1) Refactor
-	PefElement -- Contracts
+	Contracts -- 
 2) В модели там где required или enableClientValidation добавить
 	, 'except'=>'updateMultiple'
 
+Для bool поля
+	rules() 'safe'
+	view: <?=$form->field($model, 'is_active')->dropDownList([null => '', 'yes' => 'Да', 'no' => 'Нет']);?>
+	controller: if ($model->is_active) $item->is_active = getBool($model->is_active);
 В последней версии упрощённое добавление в index.php
 	'class' => \app\components\grid\MultiSelectColumn::class
+Чтобы обрабатывались ошибки валидации
+	см. ElementController::actionUpdateMultiple()
+	Html::submitButton('Сохранить', ['class' => '... sendAjax'])
+	renderPartial -- renderAjax
 
 ОПЦИИ:
 Уникальный url. В column:

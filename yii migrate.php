@@ -269,14 +269,14 @@ class menu_Yii2 extends Migration {
         $root->makeRoot();
 
         //$root = MenuItem::findOne(47);
-            $item=new MenuItem();
-            $item->name='Подраздел1';
-            $item->url='/planning/price'; $item->access = 'viewStockElements'; $item->site_id = MenuItem::PLAN2_SITE_ID;
+            $item = new MenuItem();
+            $item->name = 'Подраздел1';
+            $item->url = '/planning/price'; $item->access = 'viewStockElements'; $item->site_id = MenuItem::PLAN2_SITE_ID;
             $item->appendTo($root);
 
-                $item2=new MenuItem();
-                $item2->name='Подраздел2';
-                $item2->url='/planning/price/equipment'; $item2->access = 'viewStockElements'; $item2->site_id = MenuItem::PLAN2_SITE_ID;
+                $item2 = new MenuItem();
+                $item2->name = 'Подраздел2';
+                $item2->url = '/planning/price/equipment'; $item2->access = 'viewStockElements'; $item2->site_id = MenuItem::PLAN2_SITE_ID;
                 $item2->appendTo($item);
 
         //Перемещать также как добавлять
