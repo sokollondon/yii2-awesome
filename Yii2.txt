@@ -223,7 +223,7 @@ Yii::$app->keyStorage->get('is_reminder')
 public function search()
 { //Для DynaGrid нужно, чтобы в модели был метод search() и без доп. параметров
     $this->load(Yii::$app->request->queryParams);
-    $with =[
+    $with = [
         'reason',
     ];
     $dgHelper = new DynaGridHelper();
@@ -235,6 +235,9 @@ public function search()
     //        $query->orderBy('id');
     //    },
     //]);
+    if (!$_GET['Post'] && !DynaGridHelper::isFilterDefault()) {//фильтр по умолчанию
+        $this->specialist_id = Yii::$app->user->id;
+    }
 
     $dataProvider = new ActiveDataProvider([
         'query' => $query,
@@ -268,10 +271,11 @@ public function search()
     $query->andFilterWhere([
         'id' => $this->id,
         'date' => $this->date,
+        'status_id' => [1, 2],
     ]);
     $query->andFilterWhere(['ILIKE', 'name', $this->name]);
     //$query->andFilterWhere(['ILIKE', 'name', '%'.$this->name, false]);
-    $query->andFilterWhere(['IN', 'status_id', [1, 2]]);
+    $query->andFilterWhere(['NOT IN', 'status_id', [1, 2]]);
     $query->andFilterCompare('price', changeCommaToDot($this->price));//>100, <100
     $query->andFilterWhere(['between', 'date', $this->date['from'], $this->date['to']]);//включая границы диапозона
     if ($this->tz != '') {//числовые поля
@@ -285,7 +289,7 @@ public function search()
         //Вариант №2 int $query->andWhere(['IS'.($this->esd_id=='yes' ? ' NOT' : ''), 'esd_id', null]);
     }//Вариант №3 $this->is_active=='0'
 
-    if ($this->f_date) {//Фильтр связанных данных hasMany
+    if ($this->f_date['from']) {//Фильтр связанных данных hasMany
         $query->joinWith(['tags']);
         $query->groupBy('t.id');
         $query->andFilterWhere(['between', 'tags.date', $this->f_date['from'], $this->f_date['to']]);
@@ -393,13 +397,13 @@ echo GridView::widget([
         'user.name', //relation, без фильтра
         [
             'attribute' => 'name',
-            'content' => function(MMMMMM $model) {
+            'content' => function (MMMMMM $model) {
                 return $model->name;
             },
         ],
         [
             'attribute' => 'is_default',
-            'content' => function(MMMMMM $model) {
+            'content' => function (MMMMMM $model) {
                 return $model->is_default ? Helper::icon('ok','Да') : '';
             },
             'filter' => ['yes' => 'Да', 'no' => 'Нет'],
@@ -409,9 +413,10 @@ echo GridView::widget([
             'attribute' => 'user_id',
             //'attribute' => 'user.name',
             'label' => 'Дата <br>отгрузки', 'encodeLabel' => false, 'headerOptions' => ['class' => 'header-sm'],
-            //'label' => Helper::gridLabel('₽','Валюта'), 'encodeLabel' => false,
+            //'label' => Helper::gridLabel('₽', 'Валюта'), 'encodeLabel' => false,
+                //'<i class="icon... h4"></i>' -- к .h4 нужно .header-sm
             ////'header' => 'Пользователь2',//без сортировки
-            'content' => function(MMMMMM $model){
+            'content' => function (MMMMMM $model) {
                 return $model->user->name;
                 //return Helper::gridTruncate(nl2br($model->note), 20);
             },
@@ -429,10 +434,11 @@ echo GridView::widget([
             //'enableSorting' => false,
             //'visible' => false,
 
-            //'pageSummary' => true,//111. Ещё в config 'showPageSummary' => true,
-            //'pageSummary' => function($sum) { return Yii::$app->formatter->asCurrency($sum, 'RUR'); },
-            'pageSummary' => function() use ($dataProvider) {//если не хватает функционала https://demos.krajee.com/grid
-                $sum = 0;
+            //'pageSummary' => true,//1111. Ещё в config 'showPageSummary' => true,
+            //'pageSummaryFormat' => ['decimal'],
+            //'pageSummary' => function ($sum) { return Yii::$app->formatter->asCurrency($sum, 'RUR'); },
+            'pageSummary' => function () use ($dataProvider) {//если не хватает функционала https://demos.krajee.com/grid
+                $sum = 0;//Или $GLOBALS[]
                 foreach ($dataProvider->models as $model) {/** @var $model MMMM */
                 }
                 return Helper::gridFormatAsInteger($sum);
@@ -441,7 +447,7 @@ echo GridView::widget([
         ],
         [
             'attribute' => 'price',
-            'content' => function(MMMMMM $model) {
+            'content' => function (MMMMMM $model) {
                 return Helper::gridFormatAsInteger($model->price);
             },
             'hAlign' => 'right',
@@ -461,7 +467,7 @@ echo GridView::widget([
         ],
         [
             'class' => MultiSelectColumn::class,
-            'content' => function(MMMMMM $model) {
+            'content' => function (MMMMMM $model) {
                 return MultiSelectColumn::getContent($model->id, $model->qty);
             },
             //'options' => [
@@ -518,7 +524,7 @@ pjax
 Группировка, объединение ячеек
     [
         'attribute'=>'customer_id',
-        'content'=>function(MMMMMM $model){
+        'content'=>function (MMMMMM $model){
             return $model->name .hiddenSpan();//иначе пустая ячейка даст глючный сдвиг если нет name
         },
         'group' => true,
@@ -565,6 +571,13 @@ echo GridView::widget([
 Выбор даты календарем
     $form->field($model, 'date')->dateInput() //datepicker
 
+    Events
+        При изменении даты
+            setTimeout(function(){
+                $('#date').on('changeDate', function(e) {
+                });
+            }, 10);
+
     Вариант2 вручную
     if(!$model->hasErrors('date')) $model->date = asDate($model->date);
     echo $form->field($model, 'date')->textInput(['class'=>'form-control datepicker']);
@@ -595,11 +608,11 @@ echo GridView::widget([
 
 Выпадающий список
 	//Документация  http://demos.krajee.com/widget-details/select2
-    echo $form->field($model, 'user_id')->widget(Select2::class, [
+    <?=$form->field($model, 'user_id')->widget(Select2::class, [
         'data' => User::getList(),
         'options' => ['placeholder' => ''],
         'pluginOptions' => ['allowClear' => true],
-    ]);
+    ]);?>
     	//Дополнительно js
     		//Очистить выбранное значение (работает только если указан 'placeholder')
             $('#id').val(null).trigger('change');
@@ -614,7 +627,7 @@ echo GridView::widget([
             https://qna.habr.com/answer?answer_id=1866701
         См. Select2::widget()
 	Подгружаемый по ajax
-		<?= $form->field($model, 'customer_id')->widget(Select2::class, [
+		<?=$form->field($model, 'customer_id')->widget(Select2::class, [
             'initValueText' => $model->customer->company_name,
             'options' => ['placeholder' => ''],
             'pluginOptions' => [
@@ -632,7 +645,7 @@ echo GridView::widget([
                 'data' => Equipment::getList($model->linkedEquipments),
                 'options' => ['placeholder' => '','multiple' => true],
         	//Изменить значение
-			$('customer_id').html('<option value="11">Значение</option>').change();
+			$('#customer_id').html('<option value="11">Значение</option>').change();
             //Доп.
                 'pluginEvents' => [
                     'select2:selecting' => "function(e) { console.info(e.params.args.data); }",
@@ -648,7 +661,7 @@ echo GridView::widget([
         Док2: https://typeahead.js.org/examples/
         Css: https://github.com/bassjobsen/typeahead.js-bootstrap-css
     \app\assets\TypeaheadAsset::register($this);
-    <?=$form->field($model, 'tz')->textInput(['autocomplete'=>'off'])?>
+    <?=$form->field($model, 'tz')->textInput(['autocomplete' => 'off'])?>
     <script>
         $(function () {
             $('#post-tz').typeahead({
@@ -990,6 +1003,7 @@ Typeahead подгружаем по ajax. Как выше Select2AjaxFind тол
             При исп. 'filterType' => GridView::FILTER_SELECT2
             При нажатии на крестик ничего не происходит
             ПР: Выбрать со склада покупных
+            РЕШЕНИЕ: использовать простой select2 без krajee
 
 Yii2 плагин не находит view которые находятся в модуле
     https://github.com/nvlad/yii2support/issues/181

@@ -11,8 +11,8 @@
  */
 /*
 1) Автоматически все файлы в папке:
-    cd protected\controllers
-    php D:\OSPanel\domains\planning1-2.local/vendor/phpoffice/phpspreadsheet/bin/migrate-from-phpexcel
+    cd runtime/temp
+    php D:\OSPanel\domains\plan2.local/vendor/phpoffice/phpspreadsheet/bin/migrate-from-phpexcel
 2) Потом вручную
 $objPHPExcel = app()->XPHPExcel... (comment + 3 строчки -- 2)
 ...$objWriter->save('php://output'); (блок -- 1 строчку)
@@ -25,6 +25,7 @@ fill
 
  */
 
+use ExcelHelper as EH;
 
 class ReportSssController extends Controller
 {

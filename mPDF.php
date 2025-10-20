@@ -10,16 +10,15 @@ class ReportPdfController extends Controller
      */
     public function actionPrint($id)
     {
-        $content = $this->renderPartial('_print');
         $pdf = new Pdf([
-            'content' => $content,
+            'content' => $this->renderPartial('_print'),
             'cssInline' => file_get_contents(Yii::getAlias('@app/assets/css/pdf.css')),
-            'marginLeft'=>10, 'marginRight'=>9, 'marginTop'=>5, 'marginBottom'=>10, 'marginHeader'=>0, 'marginFooter'=>5,
+            'marginLeft' => 10, 'marginRight' => 9, 'marginTop' => 5, 'marginBottom' => 10, 'marginHeader' => 0, 'marginFooter' => 5,
             'methods' => [
-                'SetFooter'=>[Yii::$app->formatter->asDate(time()).'||Страница {PAGENO} из {nb}'],
-            ]
+                'SetFooter' => [asDate('now').'||Страница {PAGENO} из {nb}'],
+            ],
         ]);
-        $pdf->filename = ($model->contract_number?:'КП').'.pdf';
+        $pdf->filename = 'pdf.pdf';
         //return $this->renderEmpty($pdf);
         return $pdf->render();
     }
@@ -128,4 +127,11 @@ $pdf = new Pdf([
         ВАРИАНТ №1: <img src="<?=Helper::getImgBase64('/images/icon.png')?>">
         ВАРИАНТ №2: <?=CHtml::image(app()->basePath.'/../images/logo2.png','',['width'=>'150px;'])?>
 
+*/
+
+
+/**
+ * Переход с Yii1 на Yii2
+ *//*
+align-right -- text-right
 */

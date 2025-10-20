@@ -1,11 +1,12 @@
 <?php
+use app\modules\admin\models\Subscribe;
+use app\modules\admin\models\SubscribeTarget;
 
 /**
  * PostgreSQL
  * Типы данных https://postgrespro.ru/docs/postgresql/16/datatype
  */
 class PostgreSQL extends CDbMigration {
-
     public function safeUp() {
         //СОЗДАЕМ
         $this->createTable('{{post}}', [
@@ -64,6 +65,34 @@ SQL
         //app()->cache->flush();
     }
 
+    protected function fillName(){
+        echo "    >>> fillName: ";
+        $ok = 0;
+        foreach ($items as $item) {
+            if ($item->updateAttributes(['name_clear' => '123'])) {
+                $ok++;
+            }
+            if ($ok % 2000 == 0 && $ok) echo ".";
+        }
+        echo "$ok \n";
+    }
+    protected function fillV2(){
+        echo "    >>> fillV2: ";
+        //Если нужно beforeValidate(), afterSave() и т.д.
+        $ok = 0;
+        $err = [];
+        foreach ($items as $item) {
+            if ($item->save()) {
+                $ok++;
+            } else {
+                $err[] = $item->id;
+            }
+            //if($ok%500 == 0 && $ok) echo "."; //Для очень долгих операций показывать прогресс ч-з каждые 500
+        }
+        echo "$ok \n";
+        if ($err) echo "Fail (".count($err).") for ids: ".implode(', ', $err)." \n";
+    }
+
     public function safeDown() {
         //$this->execute("DELETE FROM user WHERE username='admin'"); //Если ниже есть dropTable, то не требуется
 
@@ -80,34 +109,19 @@ SQL
     }
 }
 
-protected function fillName(){
-    echo "    >>> fillName: ";
-    $ok = 0;
-    foreach ($items as $item) {
-        if($item->updateAttributes(['name_clear' => '123'])){
-            $ok++;
-        }
-        if($ok%2000 == 0 && $ok) echo ".";
+//Подписка
+class other extends Migration {
+    public function safeUp() {
+        $st = new SubscribeTarget();
+        $st->name = 'Прайс. Изменилась цена';
+        $st->access = 'updatePost';
+        $st->save();
+        Subscribe::add(11, $st->id);
     }
-    echo "$ok \n";
-}
-protected function fillV2(){
-    echo "    >>> fillV2: ";
-    //Если нужно beforeValidate(), afterSave() и т.д.
-    $ok = 0;
-    $err = [];
-    foreach ($items as $item) {
-        if($item->save()){
-            $ok++;
-        }else{
-            $err[] = $item->id;
-        }
-        //if($ok%500 == 0 && $ok) echo "."; //Для очень долгих операций показывать прогресс ч-з каждые 500
-    }
-    echo "$ok \n";
-    if($err) echo "Fail (".count($err).") for ids: ".implode(', ',$err)." \n";
-}
 
+    public function safeDown() {
+    }
+}
 
 class hasMany__link_many2many extends CDbMigration
 {
@@ -148,16 +162,11 @@ class hasMany__link_many2many extends CDbMigration
     }
 }
 
-
-
-
-
 /**
- * RBAC Yii2
+ * RBAC
  */
 use yii\db\Migration;
 class RBAC_Yii2 extends Migration {
-
     public function safeUp() {
         /**
          * RBAC
@@ -176,7 +185,7 @@ class RBAC_Yii2 extends Migration {
         //Переименование (+ поиск использования в коде сайта)
         $perm = $auth->getPermission('viewTZ');
         $perm->name = 'viewNEW';
-        $auth->update('viewTZ',$perm);
+        $auth->update('viewTZ', $perm);
         $this->execute("UPDATE config.menu_item        SET access = REPLACE(access, 'viewTZ', 'viewNEW') WHERE access LIKE '%viewTZ%'");
         $this->execute("UPDATE config.subscribe_target SET access = REPLACE(access, 'viewTZ', 'viewNEW') WHERE access LIKE '%viewTZ%'");
     }
@@ -198,14 +207,8 @@ class RBAC_Yii2 extends Migration {
 //        $auth->remove($auth->getRole('ПЛ. Склад. ТЗ RW'));
 //        $auth->remove($auth->getRole('ПЛ. Склад. ТЗ RO'));
     }
-
 }
-
-/**
- * RBAC Yii1
- */
 class RBAC_Yii1 extends CDbMigration {
-
     public function safeUp() {
         /**
          * RBAC
@@ -245,20 +248,14 @@ class RBAC_Yii1 extends CDbMigration {
 //        $authItem = $auth->getAuthItem('viewStockReports');
 //        $authItem->setName('viewStockTotalStock');
     }
-
 }
 
-
-
-
-
 /**
- * Меню Yii2
+ * Меню
  */
 use app\modules\admin\models\MenuItem;
 use app\modules\api\components\ApiPlan1;
 class menu_Yii2 extends Migration {
-
     public function safeUp() {
         /**
          * МЕНЮ
@@ -300,13 +297,7 @@ class menu_Yii2 extends Migration {
 
     }
 }
-
-
-/**
- * Меню Yii1
- */
 class menu_Yii1 extends CDbMigration {
-
     public function safeUp() {
         /**
          * МЕНЮ
@@ -317,14 +308,14 @@ class menu_Yii1 extends CDbMigration {
         $root->saveNode();
 
         //$root = MenuItem::model()->findByPk(6);
-            $item=new MenuItem();
-            $item->name='Подраздел1';
-            $item->url='/planning/priceEquipment'; $item->access = 'viewStockElements'; $item->site_id = MenuItem::PLAN1_SITE_ID;
+            $item = new MenuItem();
+            $item->name = 'Подраздел1';
+            $item->url = '/planning/priceEquipment'; $item->access = 'viewStockElements'; $item->site_id = MenuItem::PLAN1_SITE_ID;
             $item->appendTo($root);
 
-                $item2=new MenuItem();
-                $item2->name='Подраздел2';
-                $item2->url='/planning/price/equipment'; $item2->access = 'viewStockElements'; $item2->site_id = MenuItem::PLAN1_SITE_ID;
+                $item2 = new MenuItem();
+                $item2->name = 'Подраздел2';
+                $item2->url = '/planning/price/equipment'; $item2->access = 'viewStockElements'; $item2->site_id = MenuItem::PLAN1_SITE_ID;
                 $item2->appendTo($item);
 
         //Перемещение
@@ -346,15 +337,10 @@ class menu_Yii1 extends CDbMigration {
     }
 }
 
-
-
-
-
 /**
  * MySQL
  */
 class MySQL extends CDbMigration {
-
     public function safeUp() {
         //СОЗДАЕМ
         $this->createTable('{{post}}', [
