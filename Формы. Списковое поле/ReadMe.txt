@@ -76,10 +76,10 @@ CRUD списков и добавление к модели (hasOne, hasMany)
     function getListNameAll()
         static::LIST_CONTRACT_WORKS=>'Работы',
 5) View
-    <?= ListField::select2('works', ListField::LIST_CONTRACT_WORKS, $model, true);?>
+    <?=ListField::select2('works', ListField::LIST_CONTRACT_WORKS, $model, true);?>
 6) Контроллер
-    if($model->load($post = Yii::$app->request->post())) {
-        if(!$post['works']) $model->works=null;
+    if ($model->load($post = Yii::$app->request->post())) {
+        if (!$post['works']) $model->works = null;
         ...
     }
 

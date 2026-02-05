@@ -11,7 +11,7 @@
         report/
             pdf-kp.php  (включает форму и отчёт)
         modal/
-            form_multiple.php
+            update-multiple.php
         index.php
         form.php
 Имена методов и переменных
@@ -385,6 +385,8 @@ echo GridView::widget([
     //},
     //'layout'=>"{export}{dynagrid}{items}",
     //'tableOptions' => ['class' => 'table-hover2'],
+    //'floatHeader' => true,
+    //'floatHeaderOptions' => ['position' => 'absolute'],
     //'hover'=>true,
     //'striped'=>false,
     'columns' => [
@@ -426,7 +428,7 @@ echo GridView::widget([
             //'filterWidgetOptions' => [
             //    'options' => ['multiple' => true],//доп: #contracts-status_id+.select2 .select2-selection{max-width:60px;}
             //    'pluginOptions' => ['dropdownParent' => new \yii\web\JsExpression('$(".modal")')],
-            //],
+            //],//ajax см. Contracts manager_id
             //'filter' => Html::activeTextInput($model, 'reason_str', ['class' => 'form-control']),
             //'contentOptions' => ['class' => 'sss'],
             //'filterOptions' => ['class'=>'datepicker'],
@@ -1064,6 +1066,7 @@ DynaGrid после изменения названия колонки как о
     Иначе у всех пользователей кто делал персанализацию, пропадёт эта колонка.
     $this->execute("UPDATE dynagrid SET data = REPLACE(data, '0fdca517', 'd0be4401') WHERE id LIKE 'user-index_%'");
     https://md5calc.com/hash/crc32/str
+    https://toolsyep.com/en/hash-generator/crc32/
 
 DynaGrid после изменения ID таблицы как обновить сохранения в базе.
     $this->execute("UPDATE dynagrid SET id = REPLACE(id, 'journey-index_', 'journey-new_') WHERE id LIKE 'journey-index_%'");

@@ -12,8 +12,6 @@ Grid. Групповое действие
 	rules() 'safe'
 	view: <?=$form->field($model, 'is_active')->dropDownList([null => '', 'yes' => 'Да', 'no' => 'Нет']);?>
 	controller: if ($model->is_active) $item->is_active = getBool($model->is_active);
-В последней версии упрощённое добавление в index.php
-	'class' => \app\components\grid\MultiSelectColumn::class
 Чтобы обрабатывались ошибки валидации
 	см. ElementController::actionUpdateMultiple()
 	Html::submitButton('Сохранить', ['class' => '... sendAjax'])

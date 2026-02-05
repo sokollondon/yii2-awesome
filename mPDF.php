@@ -15,7 +15,7 @@ class ReportPdfController extends Controller
             'cssInline' => file_get_contents(Yii::getAlias('@app/assets/css/pdf.css')),
             'marginLeft' => 10, 'marginRight' => 9, 'marginTop' => 5, 'marginBottom' => 10, 'marginHeader' => 0, 'marginFooter' => 5,
             'methods' => [
-                'SetFooter' => [asDate('now').'||Страница {PAGENO} из {nb}'],
+                'SetFooter' => [asDate().'||Страница {PAGENO} из {nb}'],
             ],
         ]);
         $pdf->filename = 'pdf.pdf';
@@ -62,6 +62,10 @@ $pdf = new Pdf([
         стр6<br>
     </div>
 
+    <div>
+        <div style="width: 100px; float: left;">Слева</div>
+        <div>Справа</div>
+    </div>
     <div class="container">
         <div class="row">
             <div class="col-xs-6 p-0">

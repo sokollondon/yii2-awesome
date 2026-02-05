@@ -23,9 +23,9 @@ class PostgreSQL extends CDbMigration {
             'updated_at' => 'timestamp',
             //AR default
         ]);
-            //UNIQUE использовать только в моделе -- rules
-            //если есть риск большого кол-ва одновременных запросов на редактирование, то можно сделать и в БД:
-            //$this->execute("ALTER TABLE post ADD CONSTRAINT user_and_name_unique UNIQUE (user_id, name);"); //по двум полям
+            //UNIQUE использовать в модели -- rules
+            //если есть риск большого кол-ва одновременных запросов на редактирование, то нужно сделать и в БД:
+            //$this->execute("ALTER TABLE post ADD CONSTRAINT post__name_unique UNIQUE (user_id, name);"); //по двум полям
         $this->execute("COMMENT ON COLUMN planning.quiz.is_active IS 'Активен?'");
             //(!) если в названии поле есть заглавные буквы, то его заключать в "", например contractors.quiz."question_Type"
 
@@ -175,10 +175,10 @@ class RBAC_Yii2 extends Migration {
         $perm = $auth->createPermission('viewTZ_Stock'); $perm->description = 'Склад. ТЗ RO'; $auth->add($perm);
         $perm = $auth->createPermission('updateTZ_Stock'); $perm->description = 'Склад. ТЗ RW'; $auth->add($perm);
 
-        //$authItem = $auth->getRole('Планировщики');
         $authItem = $auth->createRole('ПЛ. Склад. ТЗ RW'); $auth->add($authItem);
         $auth->addChild($authItem, $auth->getPermission('viewTZ_Stock'));
         $auth->addChild($authItem, $auth->getPermission('updateTZ_Stock'));
+        //$auth->addChild($auth->getRole('Планировщики'), $authItem);
         $authItem = $auth->createRole('ПЛ. Склад. ТЗ RO'); $auth->add($authItem);
         $auth->addChild($authItem, $auth->getPermission('viewTZ_Stock'));
 
@@ -265,7 +265,7 @@ class menu_Yii2 extends Migration {
         //$root->url='/admin/user'; $root->access = '*'; $root->site_id = MenuItem::PLAN2_SITE_ID;
         $root->makeRoot();
 
-        //$root = MenuItem::findOne(47);
+        //$root = MenuItem::findOne(10);
             $item = new MenuItem();
             $item->name = 'Подраздел1';
             $item->url = '/planning/price'; $item->access = 'viewStockElements'; $item->site_id = MenuItem::PLAN2_SITE_ID;
