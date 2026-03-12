@@ -13,12 +13,12 @@ CRUD списков и добавление к модели (hasOne, hasMany)
 УСТАНОВКА (для связи hasMany):
 Похоже на "Формы. Списки пользователей", см Contracts::works
 1) Refactor (дополнить)
-    2contract -- 2equipment
-    contract_id -- equipment_id
-    planning.contracts -- planning.equipment
-    LIST_CONTRACT_WORKS -- 
-    works -- products
-    Работы -- Продукт
+    2contract --
+    contract_id --
+    planning.contracts --
+    LIST_CONTRACT_WORKS --
+    works --
+    Работы --
 2) (если не создавали для этой модели) Миграция, создание модели
     $this->createTable('{{list_field2contract}}', [
         'id' => 'pk',
@@ -33,7 +33,7 @@ CRUD списков и добавление к модели (hasOne, hasMany)
     $this->createIndex('list_field2contract__list_field_id', '{{list_field2contract}}', 'list_field_id');
     $this->addForeignKey('fk_list_field_id', '{{list_field2contract}}', 'list_field_id', '{{list_field}}', 'id', 'CASCADE', 'CASCADE');
 
-    Создание модели для list_field2equipment через gii 
+    Создание модели для list_field2contract через gii
     
 3) Модель
     /**

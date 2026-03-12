@@ -6,27 +6,26 @@ use app\modules\admin\models\SubscribeTarget;
  * PostgreSQL
  * Типы данных https://postgrespro.ru/docs/postgresql/16/datatype
  */
-class PostgreSQL extends CDbMigration {
+class PostgreSQL extends yii\db\Migration {
     public function safeUp() {
         //СОЗДАЕМ
         $this->createTable('{{post}}', [
             'id'         => 'pk',
-            'name'       => 'string',
-            'is_active'  => 'boolean DEFAULT true',
-            'user_id'    => 'int',//до +2147483647 также как pk(serial)
-            'float8'     => 'float8', //дробные числа. 15 дес. разрядов. Макс 123456789123.45 (= double)(в phpDoc исп. float)
-            'type_id'    => 'smallint',// до +32767
-            'bigint'     => 'bigint',// до +9223372036854775807
-            //'name2'       => "varchar(64)",//NOT NULL || DEFAULT 'val'
-            'text'       => 'text',//не ограничена длина
-            'date'       => 'date',
-            'updated_at' => 'timestamp',
+            'name'       => $this->string()->comment('Наименование'),
+            'text'       => $this->text(),//не ограничена длина
+            'is_active'  => $this->boolean()->defaultValue(true),
+            'user_id'    => $this->integer()->comment('Пользователь'),//до +2147483647 также как pk(serial)
+            'float'     => $this->double(), //дробные числа. 15 дес. разрядов. Макс 123456789123.45 (= float8)(в phpDoc исп. float)
+            //'type_id'    => $this->smallInteger(),// до +32767
+            //'bigint'     => $this->bigInteger(),// до +9223372036854775807
+            'date'       => $this->date(),
+            'updated_at' => $this->timestamp(),
             //AR default
         ]);
             //UNIQUE использовать в модели -- rules
             //если есть риск большого кол-ва одновременных запросов на редактирование, то нужно сделать и в БД:
             //$this->execute("ALTER TABLE post ADD CONSTRAINT post__name_unique UNIQUE (user_id, name);"); //по двум полям
-        $this->execute("COMMENT ON COLUMN planning.quiz.is_active IS 'Активен?'");
+            //$this->execute("COMMENT ON COLUMN planning.quiz.is_active IS 'Активен?'");
             //(!) если в названии поле есть заглавные буквы, то его заключать в "", например contractors.quiz."question_Type"
 
         $this->createIndex('post__user_id', '{{post}}', 'user_id');

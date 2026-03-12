@@ -247,6 +247,7 @@ public function search()
         //'pagination' => false,
         'sort' => [
             'defaultOrder' => [
+                //'is_finished' => SORT_ASC,
                 //'category' => SORT_ASC,
                 'id' => SORT_DESC,
             ],
@@ -257,6 +258,9 @@ public function search()
         //Раньше, когда использовали enableMultiSort требовалось: иначе не работают одновременно несколько сортировок. Если в сортировке по id указано неск. полей. и по умолчанию сортируется по id  См. Contracts::search()
     	...
     }
+    //Заданные статусы вниз
+    //$dataProvider->sort->attributes['is_finished']['asc'] = [new \yii\db\Expression("CASE WHEN status_id IN (2,4) THEN 1 ELSE 0 END")];
+
     //сорт. по дате
     $dataProvider->sort->attributes['date']['desc'] = [new yii\db\Expression('t.date DESC NULLS LAST')];
     $dataProvider->sort->attributes['date']['default'] = SORT_DESC;
@@ -380,7 +384,7 @@ echo GridView::widget([
     'dataProvider' => $model->search(),
     'filterModel' => $model,
     //'rowOptions' =>function (MMMMMM $model){
-    //    $res=[]; if(!$model->is_active) $res = ['class' => 'text-muted2'];
+    //    $res = []; if (!$model->is_active) $res = ['class' => 'text-muted2'];
     //    return $res;
     //},
     //'layout'=>"{export}{dynagrid}{items}",
