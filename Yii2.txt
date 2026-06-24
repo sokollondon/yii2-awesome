@@ -53,7 +53,7 @@ Change Log
 
 		AsArray
 			$items = Post::find()
-	            ->select(['id','name'])
+	            ->select(['id', 'name'])
 	            ->orderBy('name')
 	            ->asArray()->all();
             //->scalar();
@@ -373,6 +373,7 @@ DropDownList с NULL+false
     ], ['class'=>'form-control']);
     ПР: Служебки - Гарантийная?
 
+<?=Html::errorSummary($model, ['class' => 'alert alert-danger'])?>
 
 
 /************************************************************************************************/
@@ -383,16 +384,16 @@ echo GridView::widget([
 	'id' => 'i_am_super',
     'dataProvider' => $model->search(),
     'filterModel' => $model,
-    //'rowOptions' =>function (MMMMMM $model){
+    //'rowOptions' => function (MMMMMM $model) {
     //    $res = []; if (!$model->is_active) $res = ['class' => 'text-muted2'];
     //    return $res;
     //},
-    //'layout'=>"{export}{dynagrid}{items}",
+    //'layout' => "{export}{dynagrid}{items}",
     //'tableOptions' => ['class' => 'table-hover2'],
     //'floatHeader' => true,
     //'floatHeaderOptions' => ['position' => 'absolute'],
-    //'hover'=>true,
-    //'striped'=>false,
+    //'hover' => true,
+    //'striped' => false,
     'columns' => [
     	['class' => 'kartik\grid\SerialColumn'],//нумерация
         'id',
@@ -1069,8 +1070,8 @@ ActiveForm событие submit происходит дважды
 DynaGrid после изменения названия колонки как обновить сохранения в базе (переименовать).
     Иначе у всех пользователей кто делал персанализацию, пропадёт эта колонка.
     $this->execute("UPDATE dynagrid SET data = REPLACE(data, '0fdca517', 'd0be4401') WHERE id LIKE 'user-index_%'");
-    https://md5calc.com/hash/crc32/str
     https://toolsyep.com/en/hash-generator/crc32/
+    https://md5calc.com/hash/crc32/str
 
 DynaGrid после изменения ID таблицы как обновить сохранения в базе.
     $this->execute("UPDATE dynagrid SET id = REPLACE(id, 'journey-index_', 'journey-new_') WHERE id LIKE 'journey-index_%'");

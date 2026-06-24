@@ -36,12 +36,12 @@ class PostgreSQL extends yii\db\Migration {
 
         
         //РЕДАКТИРУЕМ
-        $this->addColumn('{{post}}', 'is_active', "boolean DEFAULT true");
+        $this->addColumn('{{post}}', 'is_active', $this->boolean()->defaultValue(true));
         //$this->execute("COMMENT ON COLUMN planning.quiz.is_active IS 'Активен?'");
         
         $this->alterColumn('{{post}}', 'note', 'text');
         //$this->execute("ALTER TABLE post ALTER COLUMN user_id DROP NOT NULL");
-        //$this->renameColumn('{{post}}','name_old','name_new');
+        //$this->renameColumn('{{post}}', 'name_old', 'name_new');
 
         $this->execute('CREATE SCHEMA stock;');
         
@@ -264,22 +264,22 @@ class menu_Yii2 extends Migration {
         //$root->url='/admin/user'; $root->access = '*'; $root->site_id = MenuItem::PLAN2_SITE_ID;
         $root->makeRoot();
 
-        //$root = MenuItem::findOne(10);
-            $item = new MenuItem();
-            $item->name = 'Подраздел1';
-            $item->url = '/planning/price'; $item->access = 'viewStockElements'; $item->site_id = MenuItem::PLAN2_SITE_ID;
-            $item->appendTo($root);
+        //$item = MenuItem::findOne(10);
+        $item = new MenuItem();
+        $item->name = 'Подраздел1';
+        $item->url = '/planning/price'; $item->access = 'viewStockElements'; $item->site_id = MenuItem::PLAN2_SITE_ID;
+        $item->appendTo($root);
+        //$item->save();//изменение
 
-                $item2 = new MenuItem();
-                $item2->name = 'Подраздел2';
-                $item2->url = '/planning/price/equipment'; $item2->access = 'viewStockElements'; $item2->site_id = MenuItem::PLAN2_SITE_ID;
-                $item2->appendTo($item);
+            $item2 = new MenuItem();
+            $item2->name = 'Подраздел2';
+            $item2->url = '/planning/price/equipment'; $item2->access = 'viewStockElements'; $item2->site_id = MenuItem::PLAN2_SITE_ID;
+            $item2->appendTo($item);
 
         //Перемещать также как добавлять
         $item->insertAfter(MenuItem::findOne(1));//или appendTo()
 
 
-        //$item->save();//изменение
         //Yii::$app->cache->flush();
         (new ApiPlan1)->flushCache();
         // Plan1->flushCache работает на beta и прод (не на локалке)

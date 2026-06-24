@@ -7,8 +7,6 @@
 * View
 */        
 DynaGrid. Как установить
-	Есть на сайтах: plan2.local, lk.genesis-law.ru
-
 	ИНСТРУКЦИЯ ПО УСТАНОВКЕ: (попрвить, см. plan2.local)
 	1) composer.json
 		"kartik-v/yii2-dynagrid": "*",
@@ -44,7 +42,7 @@ DynaGrid. Как установить
 	4) VIEW. index.php
 		Переносится dataProvider и т.д. в gridOptions
 	    <?= DynaGrid::widget([
-	        'options'=>['id'=>'post'],//todo-s
+	        'options'=>['id'=>'post'],//todo
 	        'gridOptions'=>[
 	            'dataProvider' => $model->search(),
 	            'filterModel' => $model,

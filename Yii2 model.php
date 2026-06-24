@@ -147,14 +147,14 @@ class PostMy extends ActiveRecordDefault
     }
     public function beforeSave($insert)
     {
-//        if($this->time) $this->time = date("Y-m-d H:i:s", strtotime($this->time));//для MYSQL
+//        if ($this->time) $this->time = date("Y-m-d H:i:s", strtotime($this->time));//для MYSQL
         return parent::beforeSave($insert);
     }
     public function afterSave($insert, $changedAtt)
     {
         parent::afterSave($insert, $changedAtt);
         //your_code
-        //if($this->isAttributeChangedAfterSave('qty', $changedAtt))//изменились
+        //if ($this->isAttributeChangedAfterSave('qty', $changedAtt))//изменились
     }
 
     public function getUser()

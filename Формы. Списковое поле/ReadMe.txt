@@ -33,7 +33,7 @@ CRUD списков и добавление к модели (hasOne, hasMany)
     $this->createIndex('list_field2contract__list_field_id', '{{list_field2contract}}', 'list_field_id');
     $this->addForeignKey('fk_list_field_id', '{{list_field2contract}}', 'list_field_id', '{{list_field}}', 'id', 'CASCADE', 'CASCADE');
 
-    Создание модели для list_field2contract через gii
+    Создание модели для list_field2contract скопировать, gii не требуется
     
 3) Модель
     /**
