@@ -4,120 +4,18 @@
 Примеры:
 https://plugins.krajee.com/file-advanced-usage-demo
 
-1) View
-    use kartik\file\FileInput;
+1) Refactor 
+    FileIssue -- 
+    sp.file_issue -- 
+    file_issue -- 
+    ApprovalIssue --  [AA](модель)
+    issue_id -- 
+    baseFile --  [AA](relation)
+    Файл --
 
-    $form->field($model, 'file')->widget(FileInput::class, [
-        'options' => [
-            'multiple' => false,
-            'accept' => 'application/pdf, image/*, .dwg, .zip, application/zip',
-            'required' => true,
-        ],
-        'pluginOptions' => [
-            'showPreview' => false,
-            'showUpload' => false,
-            'showRemove' => false,
-            'allowedFileExtensions' => ['pdf', 'png', 'tiff', 'jpg', 'dwg', 'zip', 'jpeg'],
-            'elErrorContainer' => '#errorBlock',
-        ],
-    ])
+2) Миграция для модели файлов
 
-
-2) Модель:
-    public $file,
-
-    public function rules()
-    {
-        $rules = [
-            [['file'], 'file', 'extensions' => 'pdf, png, jpg, tiff, dwg, zip, jpeg',
-                'maxSize' => 30*1024*1024, 'tooBig' => 'Максимальный размер 30 Мб', 'checkExtensionByMimeType' => true //Поставить false, если dwg-файлы не будут проходить валидацию
-            ],
-        ];
-        return parent::rules($rules);
-    }
-
-    public function getFiles()
-    {
-        return $this->hasMany(IssueFile::class, ['issue_id' => 'id']);
-    }
-
-3) Контроллер:
-
-    public function actionName()
-    {
-        ...
-        if ($model->load(Yii::$app->request->post())) {
-            $model->file = UploadedFile::getInstance($model, 'file');
-            ...
-            if ($model->save()) {
-                $result = $this->saveFile($model, $model->file);
-
-                if ($result['error']) {
-                    Yii::$app->getSession()->addFlash('danger', "Загрузка файла завершена с ошибкой: ".$result['error']);
-                }
-                if ($result['success']) {
-                    ...
-                }
-            }
-        }
-    }
-
-    public function saveFile(&$model, $file=null, $type=false, $newDate = false)
-    {
-        $result = [];
-        if ($file && $file->tempName) {
-            if ($model->validate(['file']) && StorageHelper::checkConnection()) {
-                $s3 = StorageHelper::getInstance();
-                if ($s3->doesBucketExist(Yii::$app->params['s3']['defaultBucket'])) {
-                    $dir = StorageHelper::getSavePath(IssueFile::UPLOAD_FILES_PATH);
-                    $newFile = new IssueFile();
-                    $newFile->issue_id = $model->id;
-                    $newFile->path = $dir;
-                    $newFile->original_name = $model->file->name;
-                    $newFile->type_id = $type ?: ApprovalIssue::BASE_TYPE;
-                    $newFile->stage_number = $model->current_stage_number;
-                    $fileName = $model->id . '_' . $newFile->type_id . '_' . uniqid() . '.' . $model->file->extension;
-                    $newFile->name = $fileName;
-                    $newFile->add_date = $newDate ?: new yii\db\Expression('NOW()');
-
-                    if ($newFile->type_id == ApprovalIssue::BASE_TYPE && $model->baseFiles && $model->status_id == ApprovalIssue::STATUS_IN_PROCESS) {
-                        if ($model->baseFiles[0]->stage_number == $model->current_stage_number) {
-                            $model->baseFiles[0]->deleteFile();
-                            if ($model->baseFiles[0]->delete()) Yii::$app->getSession()->addFlash('warning', 'Старый файл удален.');
-                        }
-                    }
-                    if ($newFile->type_id == ApprovalIssue::AGREED_TYPE && $model->agreedFiles && $model->status_id == ApprovalIssue::STATUS_CHECKING) {
-                        if ($model->agreedFiles[0]->stage_number == $model->current_stage_number) {
-                            $model->agreedFiles[0]->deleteFile();
-                            if ($model->agreedFiles[0]->delete()) Yii::$app->getSession()->addFlash('warning', 'Старый файл удален.');
-                        }
-                    }
-
-                    $insert = $s3->putObject(
-                        [
-                            'Bucket' => Yii::$app->params['s3']['defaultBucket'],
-                            'Key' => $dir.$fileName,
-                            'SourceFile' => $model->file->tempName,
-                        ]
-                    );
-
-                    if (!($insert["@metadata"]["statusCode"] == '200' && $newFile->save())) {
-                        $result['error']= 'Ошибка в процессе сохранения.';
-                    } else {
-                        $result['success'] = 'Новый файла загружен.';
-                    }
-                }
-            } else {
-                $result['error'] = implode(',', $model->getErrorSummary(true));
-                if (!$result['error']) $result['error'] = 'Нет доступа к файловому хранилищу';
-            }
-        }
-        return $result;
-    }
-
-4) Миграция для модели файлов (пример)
-
-    $this->createTable('{{sp.issue_file}}', [
+    $this->createTable('{{sp.file_issue}}', [
         'id' => 'pk',
         'issue_id' => $this->integer()->notNull(),
         'path' => 'string',
@@ -125,36 +23,26 @@ https://plugins.krajee.com/file-advanced-usage-demo
         'original_name' => 'varchar(255) DEFAULT NULL',
         'type_id' => 'int DEFAULT 1',
         'add_date' => 'date',
-
         //Стандартные поля
         'create_by' => 'int DEFAULT NULL',
         'create_date' => 'timestamp',
         'update_by' => 'int DEFAULT NULL',
         'update_date' => 'timestamp',
     ]);
+    $this->execute("comment on column sp.file_issue.path is 'Путь'");
+    $this->execute("comment on column sp.file_issue.name is 'Имя файла'");
+    $this->execute("comment on column sp.file_issue.add_date is 'Дата загрузки'");
 
-    $this->execute("comment on column sp.issue_file.issue_id is 'ID предмета Согласования'");
-    $this->execute("comment on column sp.issue_file.path is 'Путь'");
-    $this->execute("comment on column sp.issue_file.name is 'Имя файла'");
-    $this->execute("comment on column sp.issue_file.type_id is 'Тип файла'");
-    $this->execute("comment on column sp.issue_file.add_date is 'Дата загрузки'");
+    $this->createIndex('file_issue__issue_id', '{{sp.file_issue}}', 'issue_id');
+    $this->createIndex('file_issue__create_by', '{{sp.file_issue}}', 'create_by');
+    $this->createIndex('file_issue__update_by', '{{sp.file_issue}}', 'update_by');
 
-    //Внешние ключи
-    $this->createIndex('issue_file__issue_id', '{{sp.issue_file}}', 'issue_id');
-    $this->addForeignKey('fk_issue_id', '{{sp.issue_file}}', 'issue_id', '{{sp.approval_issue}}', 'id', 'SET NULL', 'CASCADE');
-
-    //Стандартные поля
-    $this->createIndex('issue_file__create_by', '{{sp.issue_file}}', 'create_by');
-    $this->createIndex('issue_file__update_by', '{{sp.issue_file}}', 'update_by');
-
-
-5) Модель для файлов
+3) Модель для файлов
 
     namespace app\modules\sp\models;
 
     use StorageHelper;
     use yii;
-    use yii\data\ActiveDataProvider;
 
     /**
      * @property integer $id
@@ -163,69 +51,27 @@ https://plugins.krajee.com/file-advanced-usage-demo
      * @property string $name
      * @property string $original_name
      * @property integer $type_id
-     * @property integer $stage_number
      * @property string $add_date
-     *
-     * @property ApprovalIssue $issue
      */
-    class IssueFile extends \app\components\ActiveRecordDefault
+    class FileIssue extends \app\components\ActiveRecordDefault
     {
-        const UPLOAD_FILES_PATH = 'files/approval/';
+        const UPLOAD_FILES_PATH = 'files/approvalIssue/';
 
         public static function tableName()
         {
-            return 'sp.issue_file';
+            return 'sp.file_issue';
         }
         public function rules()
         {
             $rules = [
                 [['issue_id'], 'required'],
                 [['issue_id', 'type_id'], 'default', 'value' => null],
-                [['issue_id', 'type_id', 'stage_number'], 'integer'],
+                [['issue_id', 'type_id'], 'integer'],
                 [['add_date'], 'safe'],
                 [['path', 'name', 'original_name'], 'string', 'max' => 255],
                 [['issue_id'], 'exist', 'skipOnError' => true, 'targetClass' => ApprovalIssue::class, 'targetAttribute' => ['issue_id' => 'id']],
             ];
             return parent::rules($rules);
-        }
-        public function attributeLabels()
-        {
-            $labels = [
-                'issue_id' => 'ID предмета Согласования',
-                'path' => 'Путь',
-                'name' => 'Имя файла',
-                'original_name' => 'Original Name',
-                'type_id' => 'Тип файла',
-                'add_date' => 'Дата загрузки',
-            ];
-            return parent::attributeLabels($labels);
-        }
-
-        public function search()
-        {
-            $this->load(Yii::$app->request->queryParams);
-            $query = self::find()->with([]);
-
-            $dataProvider = new ActiveDataProvider([
-                'query' => $query,
-                'sort' => [
-                    'defaultOrder' => [
-                        'id' => SORT_DESC,
-                    ],
-                ],
-            ]);
-
-            $query->andFilterWhere([
-                'id' => $this->id,
-                'issue_id' => $this->issue_id,
-                'type_id' => $this->type_id,
-                'add_date' => $this->add_date,
-            ]);
-            $query->andFilterWhere(['ILIKE', 'path', $this->path]);
-            $query->andFilterWhere(['ILIKE', 'name', $this->name]);
-            $query->andFilterWhere(['ILIKE', 'original_name', $this->original_name]);
-
-            return $dataProvider;
         }
 
         public function getFileLink()
@@ -268,15 +114,183 @@ https://plugins.krajee.com/file-advanced-usage-demo
                 ]);
             }
         }
+    }
 
-        public function getIssue()
+4) Поправить какие форматы файла нужны
+
+5) View form
+    use kartik\file\FileInput;
+
+    <?
+    $form = ActiveForm::begin([
+        'id' => 'formApprovalIssue',
+    ]);
+    ?>
+
+    <?
+    $label = 'Файл ';
+    if ($file = $model->specFile) {
+        $label .= Html::a('<i class="'.$file->getFileIcon().'"></i>',
+            $file->getFileLink(), ['target'=>'_blank', 'title' => $file->original_name]);
+    }
+    echo $form->field($model, 'f_baseFile')->widget(FileInput::class, [
+        'options' => [
+            'multiple' => false,
+            'accept' => 'application/pdf, image/*, .dwg, .zip, application/zip',
+            'required' => true,
+        ],
+        'pluginOptions' => [
+            'showPreview' => false,
+            'showUpload' => false,
+            'showRemove' => false,
+            'allowedFileExtensions' => ['pdf', 'png', 'tiff', 'jpg', 'dwg', 'zip', 'jpeg'],
+            'elErrorContainer' => '.field-'.Html::getInputId($model, 'f_baseFile').' .help-block',
+        ],
+    ])->label($label);?>
+
+    //Нужно если отправляется по ajax
+    <?=Html::submitButton('Сохранить', [
+        'class' => 'btn btn-primary right sendAjax',
+        'href' => \app\components\Url::current(),
+        'data-get_data_func' => 'getFormData',
+    ])?>
+    <script>
+        function getFormData() {
+            $.ajaxSettings.contentType = false;
+            $.ajaxSettings.processData = false;
+            return new FormData(<?=$form->id?>);
+        }
+    </script>
+
+6) View index $columns
+    [
+        'attribute'=>'f_baseFile',
+        'label' => 'Файл',
+        'hAlign' => 'center',
+        'width' => '100px',
+        'contentOptions' => ['class' => 'showOnHover relative f_baseFile'],
+        'content'=>function(ApprovalIssue $model){
+            $res = '';
+            $file = $model->baseFile;
+            if ($file) {
+                $res = Html::a('<span style="font-size:20px;"><i class="'.$file->getFileIcon().'"></i></span>',
+                    $file->getFileLink(), ['target'=>'_blank', 'title' => $file->original_name, 'class' => 'link-inherit opacity']);
+                if (ApprovalIssue::canUpdate()) {
+                    $res .= Html::a('<i class="fas fa-times"></i>', ['delete-file', 'id'=>$file->id],
+                        ['class' => 'sendAjax hide absolute', 'title' => 'Удалить файл', 'style' => 'font-size:10px;top:2px;margin-left:5px;',
+                            'data-confirm' => 1, 'data-updateOk' => "[data-key=$model->id] .f_baseFile",
+                        ]);
+                }
+            }
+            return $res;
+        },
+        'filter' => false,
+    ],
+
+7) Модель
+    /**
+     * @property FileIssue $baseFile
+     */
+    class ApprovalIssue
+    {
+        public $f_baseFile;
+
+        public function rules()
         {
-            return $this->hasOne(ApprovalIssue::class, ['id' => 'issue_id']);
+            $rules = [
+                [['f_baseFile'], 'file', 'extensions' => ['pdf', 'png', 'tiff', 'jpg', 'dwg', 'zip', 'jpeg'],
+                    'maxSize' => 30*1024*1024, 'tooBig' => 'Максимальный размер 30 Мб', 'checkExtensionByMimeType' => true //Поставить false, если dwg-файлы не будут проходить валидацию
+                ],
+            ];
+            return parent::rules($rules);
+        }
+
+        public function getBaseFile()
+        {
+            return $this->hasOne(FileIssue::class, ['issue_id' => 'id'])->andWhere(['type_id'=> ApprovalIssue::FILE_BASE_TYPE]);
         }
     }
+
+8) Контроллер:
+
+    public function actionName()
+    {
+        ...
+        if ($model->load(Yii::$app->request->post())) {
+            $model->f_baseFile = UploadedFile::getInstance($model, 'f_baseFile');
+            ...
+            if ($model->save()) {
+                $result = $this->saveFile($model, $model->f_baseFile);
+
+                if ($result['error']) {
+                    Yii::$app->session->addFlash('danger', "Загрузка файла завершена с ошибкой: ".$result['error']);
+                }
+                if ($result['success']) {
+                    ...
+                }
+            }
+        }
+    }
+
+    public function saveFile(&$model, $file = null, $type = false, $newDate = false)
+    {
+        /** @var ApprovalIssue $model */
+        $result = [];
+        if ($file && $file->tempName) {
+            if ($model->validate(['f_baseFile']) && StorageHelper::checkConnection()) {
+                $s3 = StorageHelper::getInstance();
+                if ($s3->doesBucketExist(Yii::$app->params['s3']['defaultBucket'])) {
+                    $dir = StorageHelper::getSavePath(FileIssue::UPLOAD_FILES_PATH);
+                    $newFile = new FileIssue();
+                    $newFile->issue_id = $model->id;
+                    $newFile->path = $dir;
+                    $newFile->original_name = $file->name;
+                    $newFile->type_id = $type ?: ApprovalIssue::FILE_BASE_TYPE;//todo можно заменить на заглушку 1, если к модели прикрепляется только файл baseFile. А если несколько, см. ContractFiles::getTypeByFieldName()
+                    $fileName = $model->id.'_'.$newFile->type_id.'_'.uniqid().'.'.$file->extension;
+                    $newFile->name = $fileName;
+                    $newFile->add_date = $newDate ?: new yii\db\Expression('NOW()');
+
+                    if ($newFile->type_id == ApprovalIssue::FILE_BASE_TYPE && $model->baseFile) {
+                        $model->baseFile->deleteFile();
+                        if ($model->baseFile->delete()) Yii::$app->session->addFlash('warning', 'Старый файл удалён.');
+                    }
+
+                    $insert = $s3->putObject(
+                        [
+                            'Bucket' => Yii::$app->params['s3']['defaultBucket'],
+                            'Key' => $dir.$fileName,
+                            'SourceFile' => $file->tempName,
+                        ]
+                    );
+
+                    if (!($insert["@metadata"]["statusCode"] == '200' && $newFile->save())) {
+                        $result['error']= 'Ошибка в процессе сохранения.';
+                    } else {
+                        $result['success'] = 'Новый файла загружен.';
+                    }
+                }
+            } else {
+                $result['error'] = implode(',', $model->getErrorSummary(true));
+                if (!$result['error']) $result['error'] = 'Нет доступа к файловому хранилищу';
+            }
+        }
+        return $result;
+    }
+
+    public function actionDeleteFile($id)
+    {
+        Yii::$app->response->format = yii\web\Response::FORMAT_JSON;
+        if (!ApprovalIssue::canUpdate()) throw new \app\components\ForbiddenHttpException();
+        $model = FileIssue::findOne($id);
+        $model->deleteFile();
+        return $model->delete() ? ['result' => 'success'] : ['result' => 'save_error'];
+    }
+
+    Если есть actionDelete() то в него нужно добавить...
 
 
 TODO: 
     Создать родительский класс для модели файлов
+    deleteFile() поместить внутрь delete()
 
 
