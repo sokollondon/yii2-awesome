@@ -40,7 +40,7 @@ class PostgreSQL extends yii\db\Migration {
         //$this->execute("COMMENT ON COLUMN planning.quiz.is_active IS 'Активен?'");
         
         $this->alterColumn('{{post}}', 'note', 'text');
-        //$this->execute("ALTER TABLE post ALTER COLUMN user_id DROP NOT NULL");
+        //$this->execute("ALTER TABLE post ALTER COLUMN user_id DROP NOT NULL");//или DROP DEFAULT
         //$this->renameColumn('{{post}}', 'name_old', 'name_new');
 
         $this->execute('CREATE SCHEMA stock;');
@@ -187,6 +187,10 @@ class RBAC_Yii2 extends Migration {
         $auth->update('viewTZ', $perm);
         $this->execute("UPDATE config.menu_item        SET access = REPLACE(access, 'viewTZ', 'viewNEW') WHERE access LIKE '%viewTZ%'");
         $this->execute("UPDATE config.subscribe_target SET access = REPLACE(access, 'viewTZ', 'viewNEW') WHERE access LIKE '%viewTZ%'");
+
+        //Добавление описания к роли
+        $authItem = $auth->getRole('ПЛ. Склад. ТЗ RO'); $authItem->description = 'Описание';
+        $auth->update($authItem->name, $authItem);
     }
 
     public function manualAssign()//Вместо этого использовать AD

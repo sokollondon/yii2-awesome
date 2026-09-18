@@ -17,7 +17,7 @@ CRUD списков и добавление к модели (hasOne, hasMany)
     contract_id --
     planning.contracts --
     LIST_CONTRACT_WORKS --
-    works --
+    works -- [AA]
     Работы --
 2) (если не создавали для этой модели) Миграция, создание модели
     $this->createTable('{{list_field2contract}}', [
@@ -74,7 +74,7 @@ CRUD списков и добавление к модели (hasOne, hasMany)
 4) ListField
     const LIST_CONTRACT_WORKS = 1;
     function getListNameAll()
-        static::LIST_CONTRACT_WORKS=>'Работы',
+        static::LIST_CONTRACT_WORKS => 'Работы',
 5) View
     <?=ListField::select2('works', ListField::LIST_CONTRACT_WORKS, $model, true);?>
 6) Контроллер

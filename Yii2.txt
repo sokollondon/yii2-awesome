@@ -271,6 +271,10 @@ public function search()
     //    'asc' => ['category.name' => SORT_ASC],
     //    'desc' => ['category.name' => SORT_DESC],
     //];
+    //Сорт. если поле берётся из двух мест (берётся первое не-null значение)
+    //$dataProvider->sort->attributes['manager_id'] = [
+    //    'asc' => ['COALESCE(t.manager_id, category.manager_id)' => SORT_ASC],
+    //];
 
     $query->andFilterWhere([
         'id' => $this->id,
@@ -493,7 +497,7 @@ echo GridView::widget([
                 'change' => function ($url) {
                     return Html::a('<i class="glyphicon glyphicon-refresh"></i>',$url);
                 },
-                'delete' => function (/** @noinspection PhpUnusedParameterInspection */$url, $model, $key) {
+                'delete' => function ($url, $model, $key) {
                     return Html::a('<i class="glyphicon glyphicon-trash"></i>', ['contract-payment/delete', 'id'=>$key],[
                         'class'=>'sendAjax', 'title'=>'Удалить', 'data-confirm' => 1, 'data-updateOk' => '.payment_wrap',
                     ]);
@@ -940,8 +944,8 @@ Typeahead подгружаем по ajax. Как выше Select2AjaxFind тол
 	if ($model->load(Yii::$app->request->post())) {
 		//После сохранения
 		return $this->goBack();
-	}else{
-        if(!$model->hasErrors()) \Helper::setReturnUrl(['index']);
+	} else {
+        if (!$model->hasErrors()) \Helper::setReturnUrl(['index']);
     }
     Также для кнопки 'Выход' лучше исп. Yii::$app->user->getReturnUrl()
 
